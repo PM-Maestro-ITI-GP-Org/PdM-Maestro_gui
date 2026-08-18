@@ -24,6 +24,11 @@ Q_IMPORT_QML_PLUGIN(PdM_DataCollectionPlugin)
 Q_IMPORT_QML_PLUGIN(PdM_OtaPlugin)
 #endif
 
+#ifdef PDM_HAVE_MLOPS
+#include "mlopsapp.h"
+Q_IMPORT_QML_PLUGIN(PdM_MlOpsPlugin)
+#endif
+
 /*
  * The single entry point of the merged application.
  *
@@ -116,6 +121,10 @@ int main(int argc, char *argv[])
 
 #ifdef PDM_HAVE_OTA
     PdM::Ota::registerWithShell();
+#endif
+
+#ifdef PDM_HAVE_MLOPS
+    PdM::MlOps::registerWithShell();
 #endif
 
     QQmlApplicationEngine engine;

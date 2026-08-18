@@ -122,10 +122,16 @@ into Maestro and everyone who builds the shell needs a built TFLite or nothing
 compiles — including the OTA and data-collection tabs, which have no interest in
 ML at all.
 
-Instead, `pdm_mlops_gui` is a new Qt repo written against the contract. It reads
-pipeline artifacts and drives training out of process. If in-app live inference
-is wanted later, `motor_fault_cpp_v2` gets extracted into its own repo and
-becomes a submodule *of `pdm_mlops_gui`*, behind an optional CMake flag.
+So `pdm_mlops_gui` is a new Qt repo written against the contract, and it reads
+the pipeline's own verdict: `mlops/gate.py` already checks the model against the
+thresholds in `config/pipeline.yaml` and writes `model_out/metrics.json`. The tab
+parses and watches that file, and re-checks nothing — a second opinion in the GUI
+could disagree with the one CI releases on. The single action it offers is
+`python3 -m mlops.gate`, run out of process.
+
+If in-app live inference is wanted later, `motor_fault_cpp_v2` gets extracted
+into its own repo and becomes a submodule *of `pdm_mlops_gui`*, behind an
+optional CMake flag.
 
 That rests on a rule worth keeping: **Maestro's submodules are exactly
 `pdm_app_core` plus the four app repos. Anything an app needs, that app pulls in
@@ -162,8 +168,8 @@ cleanup, once every app is known not to want Widgets.
 | 1 | `pdm_app_core`: Theme, MessageBus, AppRegistry, BrokerSettings | **done** |
 | 2 | Port `motor_recorder_gui` -> tab 1 | **done** |
 | 3 | Port `ota_update_gui` -> tab 3 | **done** |
-| 4 | Build the ML/Ops GUI against the contract -> tab 2 | next |
-| 5 | AI agent -> tab 4 | |
+| 4 | Build the ML/Ops GUI against the contract -> tab 2 | **done** |
+| 5 | AI agent -> tab 4 | next |
 
 ## Branch policy
 

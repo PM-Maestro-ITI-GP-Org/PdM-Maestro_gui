@@ -33,22 +33,22 @@ git submodule update --init --recursive
 
 ## State
 
-Phase 3 done. **Data Collection and OTA Update are real tabs** —
-`motor_recorder_gui` and `ota_update_gui` both run inside the shell, on
-`pdm_app_core`'s palette, and both still build and run standalone from their own
-repositories. ML/Ops and AI Agent are placeholders that report where they stand.
+Phase 4 done. **Three of the four tabs are real** — Data Collection, ML/Ops and
+OTA Update all run inside the shell on `pdm_app_core`'s palette, and each still
+builds and runs standalone from its own repository. AI Agent is a placeholder
+that reports where it stands.
 
 An app joins the build only once it carries a `pdm-app.cmake` marker, which the
 port adds, so the configure output reports the migration state of all four:
 
 ```
 -- PdM app 'data_collection': integrated as pdm_datacollection (PdM.DataCollection)
--- PdM app 'mlops': absent -- placeholder tab
+-- PdM app 'mlops': integrated as pdm_mlops (PdM.MlOps)
 -- PdM app 'ota': integrated as pdm_ota (PdM.Ota)
 -- PdM app 'agent': absent -- placeholder tab
 ```
 
-Phase 4 is next: building the ML/Ops GUI.
+Phase 5 is next, and last: the AI agent tab.
 
 ## Documentation
 
