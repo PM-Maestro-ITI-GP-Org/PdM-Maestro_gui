@@ -129,7 +129,35 @@ that same call freezes **all four tabs** — including an OTA transfer running i
 another tab that has nothing to do with it. `ota_update_gui` already does this
 correctly, with a `QThread` worker.
 
-## 9. Keep a CI job that builds the repo standalone
+## 9. Namespace your C++ types
+
+Every class the app defines goes in `PdM::<AppName>`.
+
+**Why:** `motor_recorder_gui` and `ota_update_gui` both defined a class called
+`MqttClient` in the global namespace. Linking the second one into Maestro failed
+with `multiple definition of MqttClient::publishCommand`. It is a link error, so
+nothing ships broken — but it only appears once a *second* app is integrated, so
+the first port looks fine and the trap is set for whoever does the next one.
+
+QML type names are unaffected: `QML_ELEMENT` on `PdM::Ota::MqttClient` still
+registers as `MqttClient` in `PdM.Ota`, because the module URI already separates
+them.
+
+## 10. No context properties
+
+Expose objects as QML singletons (`QML_SINGLETON`), never with
+`rootContext()->setContextProperty()`.
+
+**Why:** two reasons, and either alone is enough. The root context belongs to
+the engine, which the whole process shares, so a second app registering the same
+name silently overwrites the first with no diagnostic anywhere. And the property
+would be set from the app's own `main.cpp`, which Maestro never compiles — so in
+the merged build it is simply never set and QML fails on an undefined name.
+
+`ota_update_gui` exposed its scripted-control object this way; it is
+`Control` as a `QML_SINGLETON` of `PdM.Ota` now.
+
+## 11. Keep a CI job that builds the repo standalone
 
 **Why:** this is the guard rail that makes the whole arrangement safe. Nothing
 above breaks standalone use *by design* — but only a build that actually

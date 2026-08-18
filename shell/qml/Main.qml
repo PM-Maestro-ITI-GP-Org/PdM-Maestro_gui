@@ -20,10 +20,16 @@ import PdM.Shell
 ApplicationWindow {
     id: window
 
-    width: 1280
-    height: 800
-    minimumWidth: 900
-    minimumHeight: 600
+    /* Sized for the most demanding tab rather than for the shell. OTA asked
+       for 1440x920 and refused to go below 1080 wide when it owned its own
+       window; at the shell's original 1280x800 its guest table lost the whole
+       actions column off the right edge. A tab cannot negotiate its own window
+       size, so the window has to be at least as large as the largest tab
+       wants. */
+    width: 1440
+    height: 920
+    minimumWidth: 1080
+    minimumHeight: 700
     visible: true
     title: qsTr("PdM Maestro")
 

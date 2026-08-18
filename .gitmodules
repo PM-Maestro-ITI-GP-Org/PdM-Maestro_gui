@@ -5,7 +5,7 @@
 [submodule "apps/ota"]
 	path = apps/ota
 	url = git@github.com:PM-Maestro-ITI-GP-Org/ota_update_gui.git
-	branch = main
+	branch = feat/maestro-integration
 [submodule "core"]
 	path = core
 	url = git@github.com:PM-Maestro-ITI-GP-Org/pdm_app_core.git

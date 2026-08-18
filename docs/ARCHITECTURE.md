@@ -100,7 +100,7 @@ its client on a dedicated `QThread` worker.
 Today that costs data collection a frozen window of up to its five-second
 connect timeout, and nothing else. **Merged, it freezes all four tabs** —
 including an OTA transfer in flight in another tab. This is the single most
-important thing the Phase 2 port has to fix, and it is now rule 9 of the
+important thing the Phase 2 port has to fix, and it is now rule 8 of the
 contract.
 
 ## ML/Ops: a new GUI, not the AI repo as a submodule
@@ -161,8 +161,8 @@ cleanup, once every app is known not to want Widgets.
 | 0 | Maestro repo, shell, four placeholder tabs | **done** |
 | 1 | `pdm_app_core`: Theme, MessageBus, AppRegistry, BrokerSettings | **done** |
 | 2 | Port `motor_recorder_gui` -> tab 1 | **done** |
-| 3 | Port `ota_update_gui` -> tab 3 | next |
-| 4 | Build the ML/Ops GUI against the contract -> tab 2 | |
+| 3 | Port `ota_update_gui` -> tab 3 | **done** |
+| 4 | Build the ML/Ops GUI against the contract -> tab 2 | next |
 | 5 | AI agent -> tab 4 | |
 
 ## Branch policy

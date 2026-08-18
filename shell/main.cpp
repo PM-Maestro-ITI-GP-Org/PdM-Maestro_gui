@@ -19,6 +19,11 @@ Q_IMPORT_QML_PLUGIN(PdM_CorePlugin)
 Q_IMPORT_QML_PLUGIN(PdM_DataCollectionPlugin)
 #endif
 
+#ifdef PDM_HAVE_OTA
+#include "otaapp.h"
+Q_IMPORT_QML_PLUGIN(PdM_OtaPlugin)
+#endif
+
 /*
  * The single entry point of the merged application.
  *
@@ -107,6 +112,10 @@ int main(int argc, char *argv[])
      */
 #ifdef PDM_HAVE_DATA_COLLECTION
     PdM::DataCollection::registerWithShell();
+#endif
+
+#ifdef PDM_HAVE_OTA
+    PdM::Ota::registerWithShell();
 #endif
 
     QQmlApplicationEngine engine;
