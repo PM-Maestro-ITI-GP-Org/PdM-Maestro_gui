@@ -1,0 +1,8 @@
+[submodule "apps/data_collection"]
+	path = apps/data_collection
+	url = git@github.com:PM-Maestro-ITI-GP-Org/motor_recorder_gui.git
+	branch = main
+[submodule "apps/ota"]
+	path = apps/ota
+	url = git@github.com:PM-Maestro-ITI-GP-Org/ota_update_gui.git
+	branch = main

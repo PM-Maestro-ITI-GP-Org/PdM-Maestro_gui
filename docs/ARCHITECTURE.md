@@ -12,7 +12,8 @@ pdm_maestro (one process, one QApplication, one QQmlApplicationEngine)
 │                             Not a submodule -- nothing to run standalone.
 │
 ├── core/                     submodule: pdm-core        [Phase 1]
-│                             Theme, MessageBus, AppRegistry
+│                             Theme, shared controls, MqttClient,
+│                             MessageBus, AppRegistry
 │
 └── apps/                     submodules, one per tab
     ├── data_collection/      motor_recorder_gui   -> PdM.DataCollection
@@ -53,11 +54,30 @@ signals — and never by depending on each other directly. Data collection
 finishes a recording and publishes it; ML/Ops subscribes. Neither repo names the
 other, so both still build alone.
 
-**Open question for Phase 1:** MQTT connection ownership. `MqttClient` lives
-inside `motor_recorder_gui` today. If OTA and ML/Ops each open their own broker
-connection with a colliding client ID, the broker will kick sessions in a loop
-and it will present as an intermittent network fault. The connection likely
-belongs in `core`.
+## What `pdm-core` has to hold
+
+Larger than first estimated. With both repos checked out, these files exist in
+`motor_recorder_gui` **and** `ota_update_gui`:
+
+| File | Note |
+|---|---|
+| `Theme.qml` | the palette |
+| `AppCard.qml` | |
+| `FilledButton.qml` | |
+| `StatusPill.qml` | |
+| `mqttclient.{h,cpp}` | |
+
+So Phase 1 is not just "hoist the palette" — it is a shared control set and the
+MQTT client too. Two of these are already visibly diverging: the two
+`CMakeLists.txt` files disagree about whether `QuickControls2` is a real link
+dependency, and the copies will keep drifting until there is one of each.
+
+**MQTT connection ownership** is the sharp edge. Both apps ship their own
+`MqttClient` and both connect on their own. In one process, two connections with
+a colliding client ID make the broker kick sessions in a loop, and it presents
+as an intermittent network fault rather than as a bug in either app. Resolve
+this in Phase 1, before either port — the answer decides whether `MqttClient`
+becomes a shared singleton connection or stays per-app with distinct client IDs.
 
 ## Tabs are kept alive
 
