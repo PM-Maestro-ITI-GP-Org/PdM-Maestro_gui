@@ -1,0 +1,31 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "dev",
+            "displayName": "Desktop debug (Qt 6.10.3)",
+            "description": "The system Qt is 6.2.4, which is below this project's 6.5 floor, so the Qt location has to be given explicitly.",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/dev",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.10.3/gcc_64",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "dev",
+            "displayName": "Desktop release (Qt 6.10.3)",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "dev", "configurePreset": "dev" },
+        { "name": "release", "configurePreset": "release" }
+    ]
+}
