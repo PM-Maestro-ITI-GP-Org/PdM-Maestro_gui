@@ -118,6 +118,31 @@ ApplicationWindow {
             anchors.fill: parent
             background: null
 
+            /*
+             * The Material style draws the active-tab underline as a ListView
+             * `highlight` that slides to the current item over 250ms. It
+             * disagreed with the rest of the bar at startup -- the label for tab
+             * 0 correctly rendered as current while the underline sat under tab
+             * 2 -- because the two are driven by different machinery: the label
+             * by the currentIndex binding below, the underline by a shared
+             * animated item positioned from the ListView's own layout, which
+             * settles before the Repeater's buttons have their final widths.
+             *
+             * Replacing the highlight with a per-button underline puts both on
+             * the same binding, so they cannot drift apart. The slide is lost;
+             * for four fixed tabs it was not carrying much.
+             */
+            contentItem: ListView {
+                model: tabBar.contentModel
+                currentIndex: tabBar.currentIndex
+                orientation: ListView.Horizontal
+                spacing: tabBar.spacing
+                boundsBehavior: Flickable.StopAtBounds
+                flickableDirection: Flickable.AutoFlickIfNeeded
+                snapMode: ListView.SnapToItem
+                highlight: null
+            }
+
             /* Without this the window opens on the second tab. A TabBar whose
                buttons come from a Repeater does not reliably settle on index 0:
                the Container tracks the item being inserted, so the last
@@ -138,7 +163,18 @@ ApplicationWindow {
                     readonly property bool current: tabBar.currentIndex === index
 
                     padding: Theme.spacingTight
-                    background: null
+
+                    /* The underline that replaces the Material highlight, on
+                       the same binding as the label colours above. */
+                    background: Item {
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: 2
+                            color: Theme.primary
+                            visible: tabButton.current
+                        }
+                    }
 
                     contentItem: ColumnLayout {
                         spacing: 2

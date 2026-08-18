@@ -74,11 +74,28 @@ set(PDM_APPS
 # output, and wiring an app up is a one-file change in the app's own repo rather
 # than an edit here.
 set(PDM_INTEGRATED_APPS "")
+set(PDM_APP_TARGETS "")
+set(PDM_APP_DEFINES "")
 foreach(app IN LISTS PDM_APPS)
     set(app_dir "${CMAKE_CURRENT_SOURCE_DIR}/apps/${app}")
     if(EXISTS "${app_dir}/pdm-app.cmake")
-        message(STATUS "PdM app '${app}': integrated")
+        # Cleared first: a marker file that forgets to set one of these would
+        # otherwise silently inherit the previous app's value and link the wrong
+        # target, which is a confusing failure a long way from its cause.
+        unset(PDM_APP_ID)
+        unset(PDM_APP_TARGET)
+        unset(PDM_APP_PLUGIN)
+        unset(PDM_APP_QML_URI)
+        unset(PDM_APP_DEFINE)
+        include("${app_dir}/pdm-app.cmake")
+
+        message(STATUS "PdM app '${app}': integrated as ${PDM_APP_TARGET} (${PDM_APP_QML_URI})")
         add_subdirectory("apps/${app}")
+
+        # Both halves of the app's static QML module, same as core: the library
+        # carries the types, the plugin carries the registration.
+        list(APPEND PDM_APP_TARGETS ${PDM_APP_TARGET} ${PDM_APP_PLUGIN})
+        list(APPEND PDM_APP_DEFINES ${PDM_APP_DEFINE})
         list(APPEND PDM_INTEGRATED_APPS "${app}")
     elseif(EXISTS "${app_dir}/CMakeLists.txt")
         message(STATUS "PdM app '${app}': checked out, not yet ported -- placeholder tab")

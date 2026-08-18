@@ -29,10 +29,17 @@ qt_add_qml_module(pdm_maestro
 target_link_libraries(pdm_maestro PRIVATE
     pdm_core
     pdm_coreplugin
+    ${PDM_APP_TARGETS}
     Qt6::Quick
     Qt6::Qml
     Qt6::Widgets
     Qt6::QuickControls2
 )
+
+# One PDM_HAVE_<APP> per integrated app, from its pdm-app.cmake marker. main.cpp
+# guards each app's registration call with these, so the shell compiles against
+# whatever subset of the four is present -- which is every state the migration
+# passes through.
+target_compile_definitions(pdm_maestro PRIVATE ${PDM_APP_DEFINES})
 
 install(TARGETS pdm_maestro RUNTIME DESTINATION bin)

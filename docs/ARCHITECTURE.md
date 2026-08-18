@@ -160,17 +160,20 @@ cleanup, once every app is known not to want Widgets.
 |---|---|---|
 | 0 | Maestro repo, shell, four placeholder tabs | **done** |
 | 1 | `pdm_app_core`: Theme, MessageBus, AppRegistry, BrokerSettings | **done** |
-| 2 | Port `motor_recorder_gui` -> tab 1 | next |
-| 3 | Port `ota_update_gui` -> tab 3 | |
+| 2 | Port `motor_recorder_gui` -> tab 1 | **done** |
+| 3 | Port `ota_update_gui` -> tab 3 | next |
 | 4 | Build the ML/Ops GUI against the contract -> tab 2 | |
 | 5 | AI agent -> tab 4 | |
 
 ## Branch policy
 
-App repos are ported on a `feat/maestro-integration` branch, merged to `main`
-once standalone still builds, then the branch is deleted. The submodule pins
-commits on `main`. The changes are backward compatible by design, so there is
-nothing to keep on a permanent side branch.
+App repos are ported on a `feat/maestro-integration` branch. **`main` is not to
+be touched** — the submodules pin commits on the integration branch, and
+`.gitmodules` names that branch so `git submodule update --remote` follows it.
+
+The ports are backward compatible by design, so merging to `main` would be safe
+whenever the owner of each repo wants it; that call is not Maestro's to make.
+Until then the branches are long-lived, which makes the rule below apply.
 
 If a long-lived integration branch becomes unavoidable for some repo:
 **merge `main` into it, never rebase.** A submodule pins a SHA, and rebasing

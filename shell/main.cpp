@@ -14,6 +14,11 @@
  */
 Q_IMPORT_QML_PLUGIN(PdM_CorePlugin)
 
+#ifdef PDM_HAVE_DATA_COLLECTION
+#include "datacollectionapp.h"
+Q_IMPORT_QML_PLUGIN(PdM_DataCollectionPlugin)
+#endif
+
 /*
  * The single entry point of the merged application.
  *
@@ -91,6 +96,18 @@ int main(int argc, char *argv[])
         { "status",    QObject::tr("Phase 5, lowest priority. The tab exists now so the "
                                    "four-tab layout is real and the slot is reserved.") },
     });
+
+    /*
+     * Each integrated app hands the shell its page, turning that entry's
+     * placeholder into the real tab. The app owns its own page URL, so moving
+     * or renaming a page is a change inside that app's repository alone.
+     *
+     * After the registerApp() calls above, since setPage() needs the id to
+     * already exist.
+     */
+#ifdef PDM_HAVE_DATA_COLLECTION
+    PdM::DataCollection::registerWithShell();
+#endif
 
     QQmlApplicationEngine engine;
 
