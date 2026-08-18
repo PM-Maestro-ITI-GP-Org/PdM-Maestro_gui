@@ -6,3 +6,7 @@
 	path = apps/ota
 	url = git@github.com:PM-Maestro-ITI-GP-Org/ota_update_gui.git
 	branch = main
+[submodule "core"]
+	path = core
+	url = git@github.com:PM-Maestro-ITI-GP-Org/pdm_app_core.git
+	branch = main

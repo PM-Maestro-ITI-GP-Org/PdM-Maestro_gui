@@ -116,7 +116,20 @@ Paho MQTT, for example, is found today by a bare `find_library` inside
 `motor_recorder_gui`. Two apps doing that two different ways produces two
 different results on the same machine. Use the shared find module.
 
-## 8. Keep a CI job that builds the repo standalone
+## 8. Never block the GUI thread
+
+No synchronous network or file call on the main thread — connect, publish with
+`waitForCompletion`, large reads. Put them on a worker thread.
+
+**Why:** this is the rule with real teeth, and one app already breaks it.
+`motor_recorder_gui` calls Paho's synchronous `MQTTClient_connect` directly on
+the GUI thread. Standing alone, the cost is its own window freezing for up to
+its five-second connect timeout. Inside Maestro, one event loop is shared, so
+that same call freezes **all four tabs** — including an OTA transfer running in
+another tab that has nothing to do with it. `ota_update_gui` already does this
+correctly, with a `QThread` worker.
+
+## 9. Keep a CI job that builds the repo standalone
 
 **Why:** this is the guard rail that makes the whole arrangement safe. Nothing
 above breaks standalone use *by design* — but only a build that actually

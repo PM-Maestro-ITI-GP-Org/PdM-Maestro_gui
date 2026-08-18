@@ -7,19 +7,11 @@ qt_add_executable(pdm_maestro
     main.cpp
 )
 
-# QT_QML_SINGLETON_TYPE is not inferred from the file, and getting it wrong is
-# fatal rather than noisy. qt_add_qml_module generates the qmldir; unless the
-# source is flagged here the generated entry will not say "singleton" while
-# Theme.qml says `pragma Singleton`, and the mismatch takes down every file that
-# imports it -- which is all of them -- leaving a process with no window.
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-
 qt_add_qml_module(pdm_maestro
     URI PdM.Shell
     VERSION 1.0
     QML_FILES
         qml/Main.qml
-        qml/Theme.qml
         qml/PlaceholderPage.qml
 )
 
@@ -28,7 +20,15 @@ qt_add_qml_module(pdm_maestro
 # object is a process-wide singleton chosen by whoever owns main() -- so Maestro
 # has to construct the widest one any tab needs. Dropping to QGuiApplication is
 # a later cleanup, and only once every app is known not to want it.
+# Both halves of the QML module, and both are needed. pdm_core carries the C++
+# types and the compiled QML; pdm_coreplugin carries the registration that
+# Q_IMPORT_QML_PLUGIN in main.cpp refers to. Linking only the library gets an
+# "undefined reference to qt_static_plugin_PdM_CorePlugin()" at link time --
+# which at least fails loudly, unlike omitting the Q_IMPORT_QML_PLUGIN, which
+# builds clean and fails at run time.
 target_link_libraries(pdm_maestro PRIVATE
+    pdm_core
+    pdm_coreplugin
     Qt6::Quick
     Qt6::Qml
     Qt6::Widgets

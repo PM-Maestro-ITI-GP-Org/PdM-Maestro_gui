@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import PdM.Shell
+import PdM.Core
 
 /*
  * Stands in for a tab whose app has not been merged yet.
@@ -31,7 +31,7 @@ Item {
 
     ColumnLayout {
         anchors.centerIn: parent
-        width: Math.min(parent.width - Theme.spacingWide * 2, 520)
+        width: Math.min(parent.width - Theme.spacingLoose * 2, 520)
         spacing: Theme.spacing
 
         Text {
@@ -66,7 +66,7 @@ Item {
             Layout.topMargin: Theme.spacing
             implicitHeight: details.implicitHeight + Theme.spacing * 2
             color: Theme.surface
-            border.color: Theme.border
+            border.color: Theme.outline
             border.width: 1
             radius: Theme.radius
 

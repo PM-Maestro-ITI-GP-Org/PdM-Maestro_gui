@@ -36,6 +36,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 #
+# ---- core -------------------------------------------------------------------
+#
+# Added before the apps, and that order is load-bearing. Each app repo carries
+# pdm_app_core as its own submodule so it can build standalone, and guards the
+# add_subdirectory with if(NOT TARGET pdm_core). Adding core here first is what
+# makes those guards fire, so every app in a Maestro build resolves against the
+# one commit Maestro pins rather than four independently pinned copies of the
+# same QML module URI.
+#
+if(NOT TARGET pdm_core)
+    add_subdirectory(core)
+endif()
+
+#
 # ---- apps -------------------------------------------------------------------
 #
 # The four tabs, in the order they appear along the bottom of the window. Each

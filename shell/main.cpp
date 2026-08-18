@@ -1,6 +1,18 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickStyle>
+#include <QtQml/qqmlextensionplugin.h>
+
+#include "appregistry.h"
+
+/*
+ * Static QML modules have to be imported explicitly by the executable that
+ * links them. Without this the PdM.Core types resolve at build time -- the QML
+ * compiles, the build is clean -- and are simply missing at run time, which
+ * presents as "Theme is not a type" from a file that plainly imports PdM.Core.
+ * One line per app module as each port lands.
+ */
+Q_IMPORT_QML_PLUGIN(PdM_CorePlugin)
 
 /*
  * The single entry point of the merged application.
@@ -18,6 +30,8 @@ int main(int argc, char *argv[])
        link in CMakeLists.txt. */
     QApplication app(argc, argv);
 
+    /* Read by QSettings, which is how BrokerSettings persists the MQTT
+       endpoint. Set before anything touches core. */
     app.setOrganizationName("PM-Maestro-ITI-GP-Org");
     app.setApplicationName("PdM Maestro");
 
@@ -25,6 +39,58 @@ int main(int argc, char *argv[])
        type has been instantiated, and the failure is silent -- the app simply
        renders in the default style and nobody can see why. */
     QQuickStyle::setStyle("Material");
+
+    /*
+     * The four tabs, in the order they appear along the bottom.
+     *
+     * Declared here rather than in QML so that the list survives an app being
+     * absent: an entry with no pageUrl renders as a placeholder that reports
+     * where its port stands. Each app calls AppRegistry::setPage() from its own
+     * library as it lands, and the tab becomes real without this list changing.
+     */
+    auto *registry = PdM::AppRegistry::instance();
+
+    registry->registerApp({
+        { "id",        "data_collection" },
+        { "title",     QObject::tr("Data Collection") },
+        { "glyph",     "◉" },
+        { "moduleUri", "PdM.DataCollection" },
+        { "repo",      "motor_recorder_gui" },
+        { "status",    QObject::tr("Phase 2. Checked out under apps/data_collection and still "
+                                   "builds as a standalone app; not yet split into a library "
+                                   "and a page.") },
+    });
+
+    registry->registerApp({
+        { "id",        "mlops" },
+        { "title",     QObject::tr("ML / Ops") },
+        { "glyph",     "◆" },
+        { "moduleUri", "PdM.MlOps" },
+        { "repo",      "pdm_mlops_gui" },
+        { "status",    QObject::tr("Phase 4. The training pipeline lives in the AI repo and has "
+                                   "no GUI, so this tab is written against the contract from the "
+                                   "start rather than ported to it.") },
+    });
+
+    registry->registerApp({
+        { "id",        "ota" },
+        { "title",     QObject::tr("OTA Update") },
+        { "glyph",     "↓" },
+        { "moduleUri", "PdM.Ota" },
+        { "repo",      "ota_update_gui" },
+        { "status",    QObject::tr("Phase 3. Checked out under apps/ota and still builds as a "
+                                   "standalone app; not yet split into a library and a page.") },
+    });
+
+    registry->registerApp({
+        { "id",        "agent" },
+        { "title",     QObject::tr("AI Agent") },
+        { "glyph",     "★" },
+        { "moduleUri", "PdM.Agent" },
+        { "repo",      "pdm_agent_gui (to be created)" },
+        { "status",    QObject::tr("Phase 5, lowest priority. The tab exists now so the "
+                                   "four-tab layout is real and the slot is reserved.") },
+    });
 
     QQmlApplicationEngine engine;
 

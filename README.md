@@ -33,11 +33,16 @@ git submodule update --init --recursive
 
 ## State
 
-Phase 0. The shell runs with four tabs, every one a placeholder that reports
-where its app stands. `motor_recorder_gui` and `ota_update_gui` are checked out
-under `apps/` but are not compiled in yet — an app joins the build only once it
-carries a `pdm-app.cmake` marker, which the port adds. The configure output
-reports the migration state of all four.
+Phase 1 done. The shell runs with four tabs on `pdm_app_core`'s palette, and the
+tab list comes from core's `AppRegistry`. Every tab is still a placeholder that
+reports where its app stands.
+
+`motor_recorder_gui` and `ota_update_gui` are checked out under `apps/` but are
+not compiled in yet — an app joins the build only once it carries a
+`pdm-app.cmake` marker, which the port adds. The configure output reports the
+migration state of all four.
+
+Phase 2 is next: porting `motor_recorder_gui` to the contract.
 
 ## Documentation
 

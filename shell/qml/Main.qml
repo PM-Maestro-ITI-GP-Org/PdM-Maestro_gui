@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Material
 import QtQuick.Layouts
+import PdM.Core
 import PdM.Shell
 
 /*
@@ -10,6 +11,11 @@ import PdM.Shell
  * This is the only ApplicationWindow in the merged process. Every app becomes
  * an Item that lives inside the StackLayout below, which is why the contract
  * asks each repo to split its ApplicationWindow off from its page content.
+ *
+ * The tab list comes from PdM.Core's AppRegistry rather than an array here, so
+ * the tab bar and the page stack cannot disagree about what exists, and an app
+ * turns its placeholder into a real tab by calling setPage() from its own
+ * library -- without this file changing.
  */
 ApplicationWindow {
     id: window
@@ -22,54 +28,8 @@ ApplicationWindow {
     title: qsTr("PdM Maestro")
 
     Material.theme: Theme.dark ? Material.Dark : Material.Light
-    Material.accent: Theme.accent
+    Material.accent: Theme.primary
     color: Theme.background
-
-    /*
-     * The navigation model of the whole shell, in tab order.
-     *
-     * In Phase 1 this moves into PdM.Core's AppRegistry, so an app declares its
-     * own entry from its own repo instead of the shell hard-coding four of
-     * them. Until then this array is the single place that knows what tabs
-     * exist, and `module` records the URI each port is expected to claim.
-     */
-    readonly property var apps: [
-        {
-            title: qsTr("Data Collection"),
-            glyph: "◉",
-            module: "PdM.DataCollection",
-            repo: "motor_recorder_gui",
-            status: qsTr("Phase 2. The repo is checked out under apps/data_collection "
-                       + "and still builds as a standalone app; it has not been split "
-                       + "into a library and a page yet.")
-        },
-        {
-            title: qsTr("ML / Ops"),
-            glyph: "◆",
-            module: "PdM.MlOps",
-            repo: "pdm_mlops_gui (to be created)",
-            status: qsTr("Phase 4. The ML/Ops pipeline exists but has no GUI yet, so "
-                       + "this tab is written against the contract from the start "
-                       + "rather than ported to it.")
-        },
-        {
-            title: qsTr("OTA Update"),
-            glyph: "↓",
-            module: "PdM.Ota",
-            repo: "ota_update_gui",
-            status: qsTr("Phase 3. The repo is checked out under apps/ota and still "
-                       + "builds as a standalone app; it has not been split into a "
-                       + "library and a page yet.")
-        },
-        {
-            title: qsTr("AI Agent"),
-            glyph: "★",
-            module: "PdM.Agent",
-            repo: "pdm_agent_gui (to be created)",
-            status: qsTr("Phase 5, lowest priority. The tab exists now so the "
-                       + "four-tab layout is real and the slot is reserved.")
-        }
-    ]
 
     StackLayout {
         id: stack
@@ -77,13 +37,19 @@ ApplicationWindow {
         currentIndex: tabBar.currentIndex
 
         Repeater {
-            model: window.apps
+            model: AppRegistry
 
             Loader {
                 id: pageLoader
 
                 required property int index
-                required property var modelData
+                required property string title
+                required property string glyph
+                required property string moduleUri
+                required property string repo
+                required property string status
+                required property url pageUrl
+                required property bool available
 
                 /*
                  * Pages load on first visit and are then kept for the life of
@@ -110,15 +76,24 @@ ApplicationWindow {
                     }
                 }
 
-                /* Swapped for the app's real page -- DataCollectionPage and
-                   friends -- as each repo lands. */
-                sourceComponent: Component {
+                sourceComponent: pageLoader.available ? appPage : placeholderPage
+
+                /* A nested Loader rather than binding `source` on the outer one:
+                   Loader.source and Loader.sourceComponent clear each other, so
+                   one Loader cannot hold a binding for both cases. */
+                Component {
+                    id: appPage
+                    Loader { source: pageLoader.pageUrl }
+                }
+
+                Component {
+                    id: placeholderPage
                     PlaceholderPage {
-                        title: pageLoader.modelData.title
-                        glyph: pageLoader.modelData.glyph
-                        moduleUri: pageLoader.modelData.module
-                        repo: pageLoader.modelData.repo
-                        status: pageLoader.modelData.status
+                        title: pageLoader.title
+                        glyph: pageLoader.glyph
+                        moduleUri: pageLoader.moduleUri
+                        repo: pageLoader.repo
+                        status: pageLoader.status
                     }
                 }
             }
@@ -135,7 +110,7 @@ ApplicationWindow {
             anchors.top: parent.top
             width: parent.width
             height: 1
-            color: Theme.border
+            color: Theme.outline
         }
 
         TabBar {
@@ -151,13 +126,14 @@ ApplicationWindow {
             Component.onCompleted: tabBar.setCurrentIndex(0)
 
             Repeater {
-                model: window.apps
+                model: AppRegistry
 
                 TabButton {
                     id: tabButton
 
                     required property int index
-                    required property var modelData
+                    required property string title
+                    required property string glyph
 
                     readonly property bool current: tabBar.currentIndex === index
 
@@ -169,18 +145,18 @@ ApplicationWindow {
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: tabButton.modelData.glyph
+                            text: tabButton.glyph
                             font.pixelSize: 20
-                            color: tabButton.current ? Theme.accent : Theme.textSecondary
+                            color: tabButton.current ? Theme.primary : Theme.textSecondary
                             Behavior on color { ColorAnimation { duration: 120 } }
                         }
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: tabButton.modelData.title
+                            text: tabButton.title
                             font.pixelSize: Theme.fontSmall
                             font.weight: tabButton.current ? Font.DemiBold : Font.Normal
-                            color: tabButton.current ? Theme.accent : Theme.textSecondary
+                            color: tabButton.current ? Theme.primary : Theme.textSecondary
                             Behavior on color { ColorAnimation { duration: 120 } }
                         }
                     }

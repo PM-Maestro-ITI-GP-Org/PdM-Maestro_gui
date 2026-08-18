@@ -11,9 +11,8 @@ pdm_maestro (one process, one QApplication, one QQmlApplicationEngine)
 ├── shell/                    ApplicationWindow, TabBar, StackLayout
 │                             Not a submodule -- nothing to run standalone.
 │
-├── core/                     submodule: pdm-core        [Phase 1]
-│                             Theme, shared controls, MqttClient,
-│                             MessageBus, AppRegistry
+├── core/                     submodule: pdm_app_core
+│                             Theme, MessageBus, AppRegistry, BrokerSettings
 │
 └── apps/                     submodules, one per tab
     ├── data_collection/      motor_recorder_gui   -> PdM.DataCollection
@@ -47,6 +46,12 @@ Everything structural in this repo exists to prevent one of these:
 | Three `qrc:/main.qml` paths overwriting each other, silently | QML modules with distinct URIs |
 | Three singletons named `Theme` | one `Theme` in `PdM.Core` |
 
+A fourth, found while wiring core in: a static QML module needs **both** halves
+linked (`pdm_core` *and* `pdm_coreplugin`) plus `Q_IMPORT_QML_PLUGIN` in
+`main.cpp`. Missing the link fails loudly; missing the macro builds clean and
+fails at run time with "Theme is not a type" from a file that plainly imports
+`PdM.Core`.
+
 ## How apps talk to each other
 
 Through `PdM.Core`'s `MessageBus` — topic-based publish/subscribe over Qt
@@ -54,30 +59,77 @@ signals — and never by depending on each other directly. Data collection
 finishes a recording and publishes it; ML/Ops subscribes. Neither repo names the
 other, so both still build alone.
 
-## What `pdm-core` has to hold
+## What `pdm_app_core` holds, and what it does not
 
-Larger than first estimated. With both repos checked out, these files exist in
-`motor_recorder_gui` **and** `ota_update_gui`:
+Five files exist in both apps under the same names. They are not copies — they
+have already diverged, in most cases past the point where merging them is worth
+doing:
 
-| File | Note |
-|---|---|
-| `Theme.qml` | the palette |
-| `AppCard.qml` | |
-| `FilledButton.qml` | |
-| `StatusPill.qml` | |
-| `mqttclient.{h,cpp}` | |
+| File | data_collection | ota | Verdict |
+|---|---|---|---|
+| `Theme.qml` | 81 lines | 96 | **Hoisted.** Different token names *and* values; OTA's chosen as canonical |
+| `AppCard.qml` | 55 | 67 | Later. Same shadow trick, different implementations |
+| `FilledButton.qml` | 155 | 47 | Later. Four variants against one; different APIs |
+| `StatusPill.qml` | 52 | 42 | Later. Different tone sets |
+| `mqttclient.{h,cpp}` | 690 | 1421 | **Not merging.** See below |
 
-So Phase 1 is not just "hoist the palette" — it is a shared control set and the
-MQTT client too. Two of these are already visibly diverging: the two
-`CMakeLists.txt` files disagree about whether `QuickControls2` is a real link
-dependency, and the copies will keep drifting until there is one of each.
+Consolidating the three controls is best done once both apps are visible side by
+side in the shell, not before.
 
-**MQTT connection ownership** is the sharp edge. Both apps ship their own
-`MqttClient` and both connect on their own. In one process, two connections with
-a colliding client ID make the broker kick sessions in a loop, and it presents
-as an intermittent network fault rather than as a bug in either app. Resolve
-this in Phase 1, before either port — the answer decides whether `MqttClient`
-becomes a shared singleton connection or stays per-app with distinct client IDs.
+### The MQTT client stays where it is
+
+Two genuinely different clients: different topic trees (`guest/rpi5guest1/*`
+against `hms/*`), different QoS, one running on a `QThread` worker and one not.
+Merging them rewrites two working implementations for nothing the shell can see.
+Only the broker *address* is shared, via `BrokerSettings` — both apps hardcode
+`tcp://139.185.38.211:1883` in their own `.cpp` today, so pointing the system at
+a different broker currently means editing two files in two repositories.
+
+**The client-id collision is not a real problem.** Both apps already suffix an
+epoch timestamp (`motor_gui_<ms>`, `ota_gui_<ms>`) and their topics do not
+overlap, so two connections from one process are distinct at the broker.
+`BrokerSettings::clientId()` exists to keep that true as apps three and four
+arrive, not to fix something broken.
+
+### The real hazard is the GUI thread
+
+`motor_recorder_gui` calls `MQTTClient_connect` — Paho's *synchronous* API —
+directly on the GUI thread, and polls with a yield timer. `ota_update_gui` runs
+its client on a dedicated `QThread` worker.
+
+Today that costs data collection a frozen window of up to its five-second
+connect timeout, and nothing else. **Merged, it freezes all four tabs** —
+including an OTA transfer in flight in another tab. This is the single most
+important thing the Phase 2 port has to fix, and it is now rule 9 of the
+contract.
+
+## ML/Ops: a new GUI, not the AI repo as a submodule
+
+The [AI repo](https://github.com/PM-Maestro-ITI-GP-Org/AI) (branch
+`abdelrahman`) holds two different things and no Qt code: `mlops/` is a Python
+training pipeline with DVC pointing at Backblaze S3, and `motor_fault_cpp_v2/`
+is a C++ inference implementation.
+
+It is **not** a Maestro submodule. The decisive reason is in its CMake:
+
+```cmake
+set(TFLITE_SRC_DIR "$ENV{HOME}/tensorflow")
+set(TFLITE_BUILD_DIR "$ENV{HOME}/tflite_build")
+```
+
+A hand-built TensorFlow Lite in a developer's home directory. Submodule that
+into Maestro and everyone who builds the shell needs a built TFLite or nothing
+compiles — including the OTA and data-collection tabs, which have no interest in
+ML at all.
+
+Instead, `pdm_mlops_gui` is a new Qt repo written against the contract. It reads
+pipeline artifacts and drives training out of process. If in-app live inference
+is wanted later, `motor_fault_cpp_v2` gets extracted into its own repo and
+becomes a submodule *of `pdm_mlops_gui`*, behind an optional CMake flag.
+
+That rests on a rule worth keeping: **Maestro's submodules are exactly
+`pdm_app_core` plus the four app repos. Anything an app needs, that app pulls in
+itself.** It stops one app's build requirements becoming the whole shell's.
 
 ## Tabs are kept alive
 
@@ -107,8 +159,8 @@ cleanup, once every app is known not to want Widgets.
 | Phase | Scope | State |
 |---|---|---|
 | 0 | Maestro repo, shell, four placeholder tabs | **done** |
-| 1 | `pdm-core`: Theme, MessageBus, AppRegistry | next |
-| 2 | Port `motor_recorder_gui` -> tab 1 | |
+| 1 | `pdm_app_core`: Theme, MessageBus, AppRegistry, BrokerSettings | **done** |
+| 2 | Port `motor_recorder_gui` -> tab 1 | next |
 | 3 | Port `ota_update_gui` -> tab 3 | |
 | 4 | Build the ML/Ops GUI against the contract -> tab 2 | |
 | 5 | AI agent -> tab 4 | |
