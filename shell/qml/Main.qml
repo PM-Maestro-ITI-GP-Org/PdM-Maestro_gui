@@ -106,7 +106,83 @@ ApplicationWindow {
         }
     }
 
-    footer: Rectangle {
+    /*
+     * The stop strip, and the reason it lives in the shell rather than in the
+     * tab that needs it.
+     *
+     * The motor rig's emergency stop has to be reachable at every moment. In a
+     * standalone window that is easy -- the stop is on the only screen there is.
+     * Merged into tabs, switching to OTA Update hides it while the shaft is
+     * still turning, which is a hazard the integration created and no app can
+     * fix from inside its own page.
+     *
+     * So an app arms PdM.Core's SafetyStop while something must stay
+     * interruptible, and this strip appears above the tab bar until it is
+     * disarmed -- on every tab, including the ones that have no idea a motor
+     * exists.
+     */
+    footer: ColumnLayout {
+        spacing: 0
+
+        Rectangle {
+            Layout.fillWidth: true
+            visible: SafetyStop.armed
+            implicitHeight: 56
+            color: Theme.danger
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.leftMargin: Theme.spacing
+                anchors.rightMargin: Theme.spacing
+                spacing: Theme.spacing
+
+                Text {
+                    text: "\u25CF"
+                    font.pixelSize: Theme.fontSmall
+                    color: Theme.textOnAccent
+                    SequentialAnimation on opacity {
+                        running: SafetyStop.armed
+                        loops: Animation.Infinite
+                        NumberAnimation { to: 0.25; duration: 600 }
+                        NumberAnimation { to: 1.0; duration: 600 }
+                    }
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: SafetyStop.summary
+                    font.pixelSize: Theme.fontBody
+                    font.weight: Font.DemiBold
+                    color: Theme.textOnAccent
+                    elide: Text.ElideRight
+                }
+
+                Button {
+                    id: globalStop
+                    text: qsTr("■  EMERGENCY STOP")
+                    implicitHeight: 40
+                    font.weight: Font.DemiBold
+                    onClicked: SafetyStop.requestStop()
+
+                    background: Rectangle {
+                        radius: Theme.radiusSmall
+                        color: globalStop.down ? Theme.surfaceVariant : Theme.surface
+                    }
+                    contentItem: Text {
+                        text: globalStop.text
+                        font: globalStop.font
+                        color: Theme.danger
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: Theme.spacing
+                        rightPadding: Theme.spacing
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+        Layout.fillWidth: true
         implicitHeight: tabBar.implicitHeight
         color: Theme.surface
 
@@ -204,6 +280,7 @@ ApplicationWindow {
                     }
                 }
             }
+        }
         }
     }
 }
