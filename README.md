@@ -17,7 +17,10 @@ cmake --build build/dev -j$(nproc)
 ./build/dev/bin/pdm_maestro
 ```
 
-Requires Qt 6.10.3 at `~/Qt/6.10.3/gcc_64` and CMake 3.21+.
+Requires Qt 6.10.3 at `~/Qt/6.10.3/gcc_64` and CMake 3.21+, including the
+**Qt Serial Port** module — it is not part of a default Qt install, and the
+motor control tab needs it. Add it through the Qt Maintenance Tool under
+Qt 6.10.3 → Additional Libraries.
 
 ## Clone
 
@@ -33,7 +36,7 @@ git submodule update --init --recursive
 
 ## State
 
-**Four of the five tabs are real** — Data Collection, ML/Ops and
+**Four of the five tabs are real** — Data Collection, Motor Control, ML/Ops and
 OTA Update all run inside the shell on `pdm_app_core`'s palette, and each still
 builds and runs standalone from its own repository. AI Agent is a placeholder
 that reports where it stands.

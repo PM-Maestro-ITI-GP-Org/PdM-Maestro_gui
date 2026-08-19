@@ -138,7 +138,7 @@ into its own repo and becomes a submodule *of `pdm_mlops_gui`*, behind an
 optional CMake flag.
 
 That rests on a rule worth keeping: **Maestro's submodules are exactly
-`pdm_app_core` plus the four app repos. Anything an app needs, that app pulls in
+`pdm_app_core` plus the app repos. Anything an app needs, that app pulls in
 itself.** It stops one app's build requirements becoming the whole shell's.
 
 ## Tabs are kept alive
@@ -151,6 +151,12 @@ tabs hold their memory; that is the intended trade.
 ## Toolchain
 
 Qt **6.10.3** (`~/Qt/6.10.3/gcc_64`), CMake **3.21+**, C++17, desktop Linux only.
+
+**Qt Serial Port is required** and is not installed by default — the motor
+control tab talks to the ESP32 rig over USB. Add it with the Qt Maintenance Tool
+(Qt 6.10.3 → Additional Libraries → Qt Serial Port). It is declared REQUIRED in
+that app's CMakeLists so a missing module fails by name rather than as an
+unresolved `QSerialPort` symbol at link time.
 
 The system Qt is 6.2.4 and is below the floor — `qt_add_qml_module` maturity and
 `engine.loadFromModule` want 6.5+. Use the preset:
