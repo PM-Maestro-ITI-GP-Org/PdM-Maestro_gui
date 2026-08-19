@@ -29,6 +29,11 @@ Q_IMPORT_QML_PLUGIN(PdM_OtaPlugin)
 Q_IMPORT_QML_PLUGIN(PdM_MlOpsPlugin)
 #endif
 
+#ifdef PDM_HAVE_MOTOR_CONTROL
+#include "motorcontrolapp.h"
+Q_IMPORT_QML_PLUGIN(PdM_MotorControlPlugin)
+#endif
+
 /*
  * The single entry point of the merged application.
  *
@@ -74,6 +79,16 @@ int main(int argc, char *argv[])
         { "status",    QObject::tr("Phase 2. Checked out under apps/data_collection and still "
                                    "builds as a standalone app; not yet split into a library "
                                    "and a page.") },
+    });
+
+    registry->registerApp({
+        { "id",        "motor_control" },
+        { "title",     QObject::tr("Motor Control") },
+        { "glyph",     "\u2299" },
+        { "moduleUri", "PdM.MotorControl" },
+        { "repo",      "pdm_motor_control_gui" },
+        { "status",    QObject::tr("Runs the scripted A-J drive profiles on the ESP32 rig "
+                                   "and records custom hand sweeps.") },
     });
 
     registry->registerApp({
@@ -125,6 +140,10 @@ int main(int argc, char *argv[])
 
 #ifdef PDM_HAVE_MLOPS
     PdM::MlOps::registerWithShell();
+#endif
+
+#ifdef PDM_HAVE_MOTOR_CONTROL
+    PdM::MotorControl::registerWithShell();
 #endif
 
     QQmlApplicationEngine engine;

@@ -1,7 +1,10 @@
 # Architecture
 
-Maestro merges four Qt/QML applications into one window with a bottom tab bar,
-without any of them ceasing to be an application in its own right.
+Maestro merges the toolchain's Qt/QML applications into one window with a bottom
+tab bar, without any of them ceasing to be an application in its own right.
+Four were planned; motor control was added later, and adding it needed no change
+to the shell, the contract or core -- which is the clearest evidence the
+arrangement works.
 
 ## Shape
 
@@ -15,10 +18,11 @@ pdm_maestro (one process, one QApplication, one QQmlApplicationEngine)
 │                             Theme, MessageBus, AppRegistry, BrokerSettings
 │
 └── apps/                     submodules, one per tab
-    ├── data_collection/      motor_recorder_gui   -> PdM.DataCollection
-    ├── mlops/                (repo to be created) -> PdM.MlOps
-    ├── ota/                  ota_update_gui       -> PdM.Ota
-    └── agent/                (repo to be created) -> PdM.Agent
+    ├── data_collection/      motor_recorder_gui     -> PdM.DataCollection
+    ├── motor_control/        pdm_motor_control_gui  -> PdM.MotorControl
+    ├── mlops/                pdm_mlops_gui          -> PdM.MlOps
+    ├── ota/                  ota_update_gui         -> PdM.Ota
+    └── agent/                (repo to be created)   -> PdM.Agent
 ```
 
 Each app is a static library plus a QML module. Maestro links all of them; the
@@ -169,7 +173,9 @@ cleanup, once every app is known not to want Widgets.
 | 2 | Port `motor_recorder_gui` -> tab 1 | **done** |
 | 3 | Port `ota_update_gui` -> tab 3 | **done** |
 | 4 | Build the ML/Ops GUI against the contract -> tab 2 | **done** |
-| 5 | AI agent -> tab 4 | next |
+| 5 | AI agent -> tab 5 | next |
+| M0-M1 | Motor control: board link, state machine, emergency stop | **done** |
+| M2-M6 | Motor control: scenario grid, run-and-record, fetch, wizard, series | |
 
 ## Branch policy
 

@@ -14,3 +14,7 @@
 	path = apps/mlops
 	url = git@github.com:PM-Maestro-ITI-GP-Org/pdm_mlops_gui.git
 	branch = main
+[submodule "apps/motor_control"]
+	path = apps/motor_control
+	url = git@github.com:PM-Maestro-ITI-GP-Org/pdm_motor_control_gui.git
+	branch = main

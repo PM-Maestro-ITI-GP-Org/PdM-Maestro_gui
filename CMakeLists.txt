@@ -57,6 +57,7 @@ endif()
 #
 set(PDM_APPS
     data_collection
+    motor_control
     mlops
     ota
     agent

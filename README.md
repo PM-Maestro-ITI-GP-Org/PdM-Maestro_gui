@@ -33,7 +33,7 @@ git submodule update --init --recursive
 
 ## State
 
-Phase 4 done. **Three of the four tabs are real** — Data Collection, ML/Ops and
+**Four of the five tabs are real** — Data Collection, ML/Ops and
 OTA Update all run inside the shell on `pdm_app_core`'s palette, and each still
 builds and runs standalone from its own repository. AI Agent is a placeholder
 that reports where it stands.
@@ -43,6 +43,7 @@ port adds, so the configure output reports the migration state of all four:
 
 ```
 -- PdM app 'data_collection': integrated as pdm_datacollection (PdM.DataCollection)
+-- PdM app 'motor_control': integrated as pdm_motorcontrol (PdM.MotorControl)
 -- PdM app 'mlops': integrated as pdm_mlops (PdM.MlOps)
 -- PdM app 'ota': integrated as pdm_ota (PdM.Ota)
 -- PdM app 'agent': absent -- placeholder tab
