@@ -112,34 +112,32 @@ was never addressed; do not assume it has been fixed.
 1. **A live series run**, start to finish, on the bench. The queue logic has
    83 passing unit tests covering the tricky parts (naming, abort semantics,
    resume, pause) but has never been watched running for real.
-2. **The AI Agent tab.** Completely unscoped — no code, no repo. Before
-   building anything, read `GP/ai/pm_readme.md` and the two
-   `HypridDesign`/`HypridAdabtiveDesign` docs beside it. What they describe
-   (Layer 5) is a **voice-assistant-style Q&A layer** over the ML outputs —
-   "how much life is left in the motor?" → a spoken answer built from a
-   number the models already produced — not an LLM-with-tools agent, and the
-   two should not be conflated without asking which one is actually wanted.
-   Considerations raised but never resolved with the user, worth re-raising
-   before starting:
-     - **Deterministic first, LLM optional.** Compute the answer from real
-       model output; use an LLM only to phrase the sentence, with a
-       template fallback when there's no API key. A demo that depends on a
-       network call for its main feature is a liability in front of a
-       committee.
-     - **Bounded vs. live scope.** "Bounded" = answers from gate reports,
-       recordings, and system state already sitting in the other tabs — no
-       new dependency. "Live" = real-time fault/RUL inference, which pulls
-       in `AI/motor_fault_cpp_v2` and its hand-built TensorFlow Lite — the
-       exact dependency `pdm_mlops_gui` was deliberately built to avoid
-       needing. Bounded first, live behind an optional flag second, was the
-       standing recommendation.
-     - **Read-only, propose-only.** OTA can kill hypervisor guests and push
-       updates over MQTT. The agent should never issue that command itself —
-       propose it, put a button next to the proposal, let a human click it.
-     - **TTS is unresolved.** The design doc's voice output may have been
-       scoped for an RPi/IVI target, not necessarily wanted on the laptop
-       build this project actually targets. Ask before adding the
-       dependency.
+2. **The AI Agent tab.** Scoped 2026-08-20, not yet built. The repo exists
+   (`pdm_ai_agent_gui`, submodule at `apps/agent`) and carries no
+   `pdm-app.cmake` marker, so the build skips it and the tab stays a
+   placeholder.
+
+   **Read [`apps/agent/docs/SCOPE.md`](apps/agent/docs/SCOPE.md) before doing
+   anything here.** It is the decision record and it supersedes the guesses
+   this section used to contain. The short version:
+
+     - It is a **developer** assistant — describe the system, show and walk
+       the ML lifecycle, help add a new model, answer any detail — running on
+       the development laptop.
+     - It is **not** Layer 5 of `GP/ai/pm_readme.md`. That voice assistant
+       runs on the RPi5 in the IVI and talks to the driver. Confirmed
+       unrelated; they share no code and neither blocks the other. **No TTS
+       here** — that question belonged to Layer 5.
+     - **Read-only commands** in version one. `SCOPE.md` §7 has the reasoning
+       and the bench failure behind it (stray bytes on the serial port have
+       already started the motor once — see bug 8 in docs/STATUS.md).
+     - **Local model**, this laptop or a second one as a server. No cloud API.
+     - **First work is A0: reconcile the documentation corpus**, which
+       involves no AI at all. Three live contradictions are listed in
+       `SCOPE.md` §5, including one that makes the ML/Ops tab's account in
+       docs/STATUS.md stale. An assistant built on documents that contradict
+       each other will teach the contradictions confidently, and its whole
+       purpose is serving someone with no expert to check against.
 3. **Calibrate the rig** (`v`, ~20 s) before recording anything meant to be
    kept — every session so far has run against uncalibrated pots.
 4. **`motor_recorder_gui`'s `MQTTClient_disconnect` still blocks the GUI

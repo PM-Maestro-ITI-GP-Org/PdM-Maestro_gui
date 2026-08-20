@@ -136,6 +136,25 @@ actually releases on.
 JSON fixture matching the schema `gate.py` writes. If the real pipeline's
 output ever disagrees with that schema, this tab has not seen it.
 
+**The path it watches has since moved — found 2026-08-20 while scoping the
+AI Agent tab, not fixed.** `MlOpsPage.qml` reads `model_out/metrics.json` and
+runs `python3 -m mlops.gate`. In the `AI` repo, `gate.py` now lives at
+`old_pipeline/mlops/gate.py`: the repo was restructured into `host_pipeline/`
+(four notebooks — data building, anomaly, classification, RUL),
+`rpi_pipeline/` (C++ inference) and `MLops/` (empty, with its README pointing
+back at `old_pipeline/` for the previous DVC/CI setup). The checked-out branch
+is `newPipeline_RUL_v1`, not the `abdelrahman` that `ARCHITECTURE.md` names,
+and `MLops/README.md` states there is **no active CI** — the old workflow was
+deleted because it pointed at paths that moved.
+
+So everything above about this tab describes a pipeline layout that is no
+longer the live one. Whether the tab should follow the new pipeline, or
+whether `old_pipeline` is still what gets released, is a question for whoever
+owns the `AI` repo — it is about intent, not a typo, and was not guessed at
+here. Note also that `AI/README.md` says nothing under the new directories is
+implemented while `AI/host_pipeline/README.md` says all four notebooks are;
+both are current. See `apps/agent/docs/SCOPE.md` §5.
+
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 
 Not a Maestro submodule — it's flashed hardware, and the GUI talks to it over
