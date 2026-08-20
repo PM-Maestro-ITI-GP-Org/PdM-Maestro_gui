@@ -71,6 +71,16 @@ int main(int argc, char *argv[])
     auto *registry = PdM::AppRegistry::instance();
 
     registry->registerApp({
+        { "id",        "motor_control" },
+        { "title",     QObject::tr("Motor Control") },
+        { "glyph",     "\u2299" },
+        { "moduleUri", "PdM.MotorControl" },
+        { "repo",      "pdm_motor_control_gui" },
+        { "status",    QObject::tr("Runs the scripted A-J drive profiles on the ESP32 rig "
+                                   "and records custom hand sweeps.") },
+    });
+
+    registry->registerApp({
         { "id",        "data_collection" },
         { "title",     QObject::tr("Data Collection") },
         { "glyph",     "◉" },
@@ -79,16 +89,6 @@ int main(int argc, char *argv[])
         { "status",    QObject::tr("Phase 2. Checked out under apps/data_collection and still "
                                    "builds as a standalone app; not yet split into a library "
                                    "and a page.") },
-    });
-
-    registry->registerApp({
-        { "id",        "motor_control" },
-        { "title",     QObject::tr("Motor Control") },
-        { "glyph",     "\u2299" },
-        { "moduleUri", "PdM.MotorControl" },
-        { "repo",      "pdm_motor_control_gui" },
-        { "status",    QObject::tr("Runs the scripted A-J drive profiles on the ESP32 rig "
-                                   "and records custom hand sweeps.") },
     });
 
     registry->registerApp({
