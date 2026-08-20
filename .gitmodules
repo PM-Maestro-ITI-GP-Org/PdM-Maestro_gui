@@ -18,3 +18,7 @@
 	path = apps/motor_control
 	url = git@github.com:PM-Maestro-ITI-GP-Org/pdm_motor_control_gui.git
 	branch = main
+[submodule "apps/agent"]
+	path = apps/agent
+	url = git@github.com:PM-Maestro-ITI-GP-Org/pdm_ai_agent_gui.git
+	branch = main
