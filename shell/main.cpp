@@ -34,6 +34,11 @@ Q_IMPORT_QML_PLUGIN(PdM_MlOpsPlugin)
 Q_IMPORT_QML_PLUGIN(PdM_MotorControlPlugin)
 #endif
 
+#ifdef PDM_HAVE_AGENT
+#include "agentapp.h"
+Q_IMPORT_QML_PLUGIN(PdM_AgentPlugin)
+#endif
+
 /*
  * The single entry point of the merged application.
  *
@@ -117,9 +122,9 @@ int main(int argc, char *argv[])
         { "title",     QObject::tr("AI Agent") },
         { "glyph",     "★" },
         { "moduleUri", "PdM.Agent" },
-        { "repo",      "pdm_agent_gui (to be created)" },
-        { "status",    QObject::tr("Phase 5, lowest priority. The tab exists now so the "
-                                   "four-tab layout is real and the slot is reserved.") },
+        { "repo",      "pdm_ai_agent_gui" },
+        { "status",    QObject::tr("A1: system map and lifecycle view, both hard-coded, no "
+                                   "model yet. See apps/agent/docs/SCOPE.md.") },
     });
 
     /*
@@ -144,6 +149,10 @@ int main(int argc, char *argv[])
 
 #ifdef PDM_HAVE_MOTOR_CONTROL
     PdM::MotorControl::registerWithShell();
+#endif
+
+#ifdef PDM_HAVE_AGENT
+    PdM::Agent::registerWithShell();
 #endif
 
     QQmlApplicationEngine engine;
