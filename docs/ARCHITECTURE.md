@@ -172,6 +172,11 @@ cleanup, once every app is known not to want Widgets.
 
 ## Phases
 
+Tab numbers below are the ORIGINAL plan's, not the current on-screen order --
+Motor Control was added later as a fifth tab and then moved to first. See
+[STATUS.md](STATUS.md) for the up-to-date tab order and a full account of
+every phase, including Motor Control's seven (M0-M6 plus M3.5).
+
 | Phase | Scope | State |
 |---|---|---|
 | 0 | Maestro repo, shell, four placeholder tabs | **done** |
@@ -179,9 +184,12 @@ cleanup, once every app is known not to want Widgets.
 | 2 | Port `motor_recorder_gui` -> tab 1 | **done** |
 | 3 | Port `ota_update_gui` -> tab 3 | **done** |
 | 4 | Build the ML/Ops GUI against the contract -> tab 2 | **done** |
-| 5 | AI agent -> tab 5 | next |
-| M0-M1 | Motor control: board link, state machine, emergency stop | **done** |
-| M2-M6 | Motor control: scenario grid, run-and-record, fetch, wizard, series | |
+| 5 | AI agent -> tab 5 | not started, not scoped |
+| M0-M6, M3.5 | Motor control: board link, scenario grid, run-and-record, fetch, record wizard, series, replay | **done** -- see [STATUS.md](STATUS.md) for what is bench-verified vs. unit-tested only |
+
+Core also grew a fifth singleton beyond the four listed above:
+**`SafetyStop`**, added when Motor Control needed an emergency stop visible
+from every tab, not just its own -- see STATUS.md.
 
 ## Branch policy
 

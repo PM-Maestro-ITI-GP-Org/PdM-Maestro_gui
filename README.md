@@ -1,11 +1,15 @@
 # PdM Maestro
 
-One window over the four tools of the predictive-maintenance toolchain — data
-collection, ML/Ops, OTA update, and an AI agent — with a tab per app along the
-bottom.
+One window over the tools of the predictive-maintenance toolchain — motor
+rig control, data collection, ML/Ops, OTA update, and (eventually) an AI
+agent — with a tab per app along the bottom.
 
 Each app remains its own repository that builds and runs on its own. Maestro
 pulls them in as submodules and merges them into a single process.
+
+**New to this project? Start with [CLAUDE.md](CLAUDE.md)** — the repo map,
+branch policy, build instructions, and current state in one place. This
+README is the short version.
 
 ## Build
 
@@ -25,7 +29,7 @@ Qt 6.10.3 → Additional Libraries.
 ## Clone
 
 ```bash
-git clone --recurse-submodules git@github.com:PM-Maestro-ITI-GP-Org/pdm-maestro.git
+git clone --recurse-submodules git@github.com:PM-Maestro-ITI-GP-Org/PdM-Maestro_gui.git
 ```
 
 Already cloned without it:
@@ -52,10 +56,14 @@ port adds, so the configure output reports the migration state of all four:
 -- PdM app 'agent': absent -- placeholder tab
 ```
 
-Phase 5 is next, and last: the AI agent tab.
+The AI Agent tab is next, and last — and is not yet scoped. See
+[docs/STATUS.md](docs/STATUS.md) before starting it.
 
 ## Documentation
 
+- [CLAUDE.md](CLAUDE.md) — orientation, repo map, branch policy, gotchas
+- [docs/STATUS.md](docs/STATUS.md) — the detailed log: every phase, every
+  bug found and fixed, what's still open
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the merge works and why
 - [docs/INTEGRATION_CONTRACT.md](docs/INTEGRATION_CONTRACT.md) — what an app repo
   must do to become a tab
