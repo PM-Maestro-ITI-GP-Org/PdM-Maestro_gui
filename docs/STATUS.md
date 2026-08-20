@@ -151,7 +151,9 @@ So everything above about this tab describes a pipeline layout that is no
 longer the live one. Whether the tab should follow the new pipeline, or
 whether `old_pipeline` is still what gets released, is a question for whoever
 owns the `AI` repo — it is about intent, not a typo, and was not guessed at
-here. Note also that `AI/README.md` says nothing under the new directories is
+here. **That repo is actively being reworked as of 2026-08-20; leave it
+alone and re-check this once Zee says the rework has landed.** Nothing in
+this tab should be re-pointed at a path that is still moving. Note also that `AI/README.md` says nothing under the new directories is
 implemented while `AI/host_pipeline/README.md` says all four notebooks are;
 both are current. See `apps/agent/docs/SCOPE.md` §5.
 

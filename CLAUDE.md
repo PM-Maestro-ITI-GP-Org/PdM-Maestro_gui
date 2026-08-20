@@ -138,6 +138,11 @@ was never addressed; do not assume it has been fixed.
        docs/STATUS.md stale. An assistant built on documents that contradict
        each other will teach the contradictions confidently, and its whole
        purpose is serving someone with no expert to check against.
+     - **Two of those three are inside the `AI` repo, which someone else is
+       reworking as of 2026-08-20.** Do not edit that repo or resolve them
+       from outside — the restructure in flight will settle them. Zee will
+       say when it is finished. A0's reachable half is the Maestro-side
+       corpus: this repo and the six app repos' own docs.
 3. **Calibrate the rig** (`v`, ~20 s) before recording anything meant to be
    kept — every session so far has run against uncalibrated pots.
 4. **`motor_recorder_gui`'s `MQTTClient_disconnect` still blocks the GUI
