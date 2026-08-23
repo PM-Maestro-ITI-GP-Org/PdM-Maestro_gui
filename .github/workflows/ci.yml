@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      # Every app here is a private repo in the same org, and GITHUB_TOKEN
+      # is scoped to exactly one repository by design -- the submodules need
+      # a token of their own. CI_TOKEN is a fine-grained PAT with read-only
+      # Contents access to this org's repos; rewrite both URL shapes onto it
+      # (the recorded submodule URLs are SSH) and fetch the pins.
+      - name: Fetch submodules
+        run: |
+          git config --global url."https://x-access-token:${{ secrets.CI_TOKEN }}@github.com/".insteadOf "git@github.com:"
+          git config --global --add url."https://x-access-token:${{ secrets.CI_TOKEN }}@github.com/".insteadOf "https://github.com/"
+          git submodule update --init --recursive
+
+      # The union of what every app's find_package asks for (see each
+      # CMakeLists.txt): Quick/Qml/Widgets/QuickControls2/Network live in
+      # qtbase+qtdeclarative; motor_control needs qtserialport;
+      # qtshadertools must be present for the .qsb tooling the QML build runs.
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.*"
+          archives: qtbase qtdeclarative qtshadertools qtsvg icu qttranslations qtserialport
+          cache: true
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build the full shell
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Package
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          ./scripts/package-linux.sh build/bin/pdm_maestro \
+            "PdM-Maestro_gui-${GITHUB_REF_NAME}-linux-x64.tar.gz"
+
+      - name: Create release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: PdM-Maestro_gui-*-linux-x64.tar.gz
+          body: |
+            Self-contained Linux build of the full PdM Maestro shell — all
+            five tools in one window.
+
+            Extract, then run **./run.sh** — never bin/pdm_maestro directly.
+            Bundles its own Qt 6.10 and every non-system library, so any
+            distro with glibc >= 2.39 works regardless of what Qt (if any)
+            is installed. Built on ubuntu-24.04. The AI Agent tab wants its
+            backend from [pdm_ai_server](https://github.com/PM-Maestro-ITI-GP-Org/pdm_ai_server);
+            everything else runs without one. Each tool also ships as its
+            own standalone app in its own repository.
+          generate_release_notes: true
