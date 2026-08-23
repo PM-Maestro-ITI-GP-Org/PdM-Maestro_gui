@@ -34,7 +34,10 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: "6.10.*"
-          archives: qtbase qtdeclarative qtshadertools qtsvg icu qttranslations qtserialport
+          # serialport is an add-on module, not a base archive -- passing it
+          # as an archive is silently ignored and configure dies later.
+          archives: qtbase qtdeclarative qtshadertools qtsvg icu qttranslations
+          modules: qtserialport
           cache: true
 
       - name: Configure
