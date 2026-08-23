@@ -40,6 +40,12 @@ jobs:
           modules: qtserialport
           cache: true
 
+      # data_collection's mqttclient.cpp is an unconditional source whose
+      # class only exists under HAVE_MQTT -- without Paho the build dies on
+      # "MqttClient does not name a type". Dev machines all have it; so must CI.
+      - name: System dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpaho-mqtt-dev
+
       - name: Configure
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
