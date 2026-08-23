@@ -37,16 +37,79 @@ ApplicationWindow {
     Material.accent: Theme.primary
     color: Theme.background
 
-    StackLayout {
+    /*
+     * A2b's `navigate_to` tool (docs/SCOPE.md §6.2): the agent tab validates
+     * the destination and publishes here; the shell is what actually owns
+     * `tabBar.currentIndex`, so this is where the switch has to happen. An
+     * unknown tab id -- already rejected server-side, but nothing stops a
+     * future publisher from getting this topic wrong -- is just ignored
+     * rather than crashing the shell: indexOf() returns -1, which is not a
+     * valid StackLayout index.
+     */
+    BusSubscription {
+        topic: "agent.navigate"
+        onReceived: (payload) => {
+            const idx = AppRegistry.indexOf(payload.tab);
+            if (idx < 0)
+                return;
+            tabBar.setCurrentIndex(idx);
+            if (payload.section)
+                highlightRelay.fire(payload.tab, payload.section);
+        }
+    }
+
+    /*
+     * The second half of a guided "take me there and show me": once the tab
+     * has actually switched, publish `agent.highlight` so the destination
+     * page can flash the one element the agent named (server-validated
+     * against a per-tab allowlist -- see server/tools.py's HIGHLIGHT_TARGETS
+     * -- so this never receives a name nothing is listening for). A separate
+     * publish, not folded into `agent.navigate` above, because the
+     * destination page may still be mid-crossfade (this container's own
+     * 220ms opacity transition) or, on a first visit, still instantiating --
+     * either way it isn't ready to be highlighted the instant the tab
+     * switches, only shortly after.
+     */
+    Timer {
+        id: highlightRelay
+        property string tab: ""
+        property string element: ""
+        interval: 350
+        repeat: false
+        function fire(tabId, element_) {
+            tab = tabId;
+            element = element_;
+            restart();
+        }
+        onTriggered: MessageBus.publish("agent.highlight", { tab: tab, element: element })
+    }
+
+    /*
+     * A plain Item, not StackLayout -- StackLayout hides every non-current
+     * child outright (`visible: false`), which is instant by construction
+     * and gives a switch nothing to animate. StackView was the other
+     * candidate and was rejected: its push/pop model destroys popped pages
+     * unless explicitly cached, which is exactly the "an app turns its
+     * placeholder into a real tab and then never gets torn down" contract
+     * the comment below already depends on. So every loaded page stays
+     * exactly where it always was -- an always-visible `Loader`, sized by
+     * anchors.fill like this container's own children were under
+     * StackLayout -- and only `opacity` (with `enabled` alongside it, so a
+     * fading-out page can't still catch a click) marks which one is current.
+     * `currentIndex` was StackLayout's own property before; declared by
+     * hand now that this is a bare Item.
+     */
+    Item {
         id: stack
         anchors.fill: parent
-        currentIndex: tabBar.currentIndex
+        property int currentIndex: tabBar.currentIndex
 
         Repeater {
             model: AppRegistry
 
             Loader {
                 id: pageLoader
+                anchors.fill: parent
 
                 required property int index
                 required property string title
@@ -71,6 +134,10 @@ ApplicationWindow {
                  */
                 property bool loaded: false
                 active: loaded
+
+                opacity: index === stack.currentIndex ? 1 : 0
+                enabled: index === stack.currentIndex
+                Behavior on opacity { NumberAnimation { duration: 220; easing.type: Easing.OutCubic } }
 
                 Component.onCompleted: if (index === stack.currentIndex) loaded = true
 
