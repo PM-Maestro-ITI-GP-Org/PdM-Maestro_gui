@@ -97,7 +97,7 @@ repo's own README for the exact command.
 |---|---|
 | Motor Control | **Functionally complete** (M0–M6, M3.5). Verified against real hardware: scenario runs, emergency stop at the new 2.5 s ramp, upload+replay, the fetch-and-clear cycle (310 MB, byte-verified, then deleted). **Not yet verified live:** a full series run end-to-end on the bench. |
 | Data Collection | Ported to the contract (Phase 2 of the original 5-phase plan). MQTT connect moved off the GUI thread. Subscribes to `recording.start`/`recording.stop` on the bus. |
-| ML/Ops | Written against the contract. Reads `mlops/gate.py`'s own verdict from `model_out/metrics.json`; forms no second opinion. **Never tested against a real pipeline run** — only a hand-built fixture matching the schema. |
+| ML/Ops | Rewritten 2026-08-24 against the AI repo's current pipeline (`gate_report.json` + per-stage `rpi_pipeline/config/*/metrics.json`, not the old `model_out/` path). Two tabs — trigger/watch a release, and one sub-tab per model stage. Verified against a real release's output inside a full Maestro build. **Not yet tested:** triggering a fresh release from inside the embedded tab (constantly exercised standalone; only a finished run was confirmed embedded). See docs/STATUS.md. |
 | OTA Update | Ported to the contract, merged forward with six commits from upstream `main`. |
 | AI Agent | **Placeholder only.** Never scoped. See "What's actually left" below. |
 

@@ -127,35 +127,44 @@ New repo, `main`. Deliberately **not** a submodule of the `AI` repo — that
 repo's `motor_fault_cpp_v2` needs a hand-built TensorFlow Lite pinned to
 `$HOME/tensorflow`, which would make every Maestro build (including the OTA
 and Data Collection tabs, which have no interest in ML) depend on it.
-Instead this tab parses and watches `model_out/metrics.json`, the file
-`mlops/gate.py` in the `AI` repo already writes, and re-implements none of
-the pass/fail logic — a second opinion here could disagree with the one CI
-actually releases on.
+Instead this tab parses and watches the AI repo's own release artefacts and
+re-implements none of the pass/fail logic — a second opinion here could
+disagree with the one CI actually releases on.
 
-**Never run against a real pipeline output** — only against a hand-built
-JSON fixture matching the schema `gate.py` writes. If the real pipeline's
-output ever disagrees with that schema, this tab has not seen it.
+**2026-08-24: rewritten against the AI repo's restructure, and merged to
+`main` (432aba3).** Everything above and below this note, and the whole
+"path has since moved" story, describes the pre-restructure tab and is
+superseded. The restructure this section used to say was "actively being
+reworked... leave it alone" has landed, on the AI repo's `new_pipeline`
+branch, and the tab now follows it directly:
 
-**The path it watches has since moved — found 2026-08-20 while scoping the
-AI Agent tab, not fixed.** `MlOpsPage.qml` reads `model_out/metrics.json` and
-runs `python3 -m mlops.gate`. In the `AI` repo, `gate.py` now lives at
-`old_pipeline/mlops/gate.py`: the repo was restructured into `host_pipeline/`
-(four notebooks — data building, anomaly, classification, RUL),
-`rpi_pipeline/` (C++ inference) and `MLops/` (empty, with its README pointing
-back at `old_pipeline/` for the previous DVC/CI setup). The checked-out branch
-is `newPipeline_RUL_v1`, not the `abdelrahman` that `ARCHITECTURE.md` names,
-and `MLops/README.md` states there is **no active CI** — the old workflow was
-deleted because it pointed at paths that moved.
-
-So everything above about this tab describes a pipeline layout that is no
-longer the live one. Whether the tab should follow the new pipeline, or
-whether `old_pipeline` is still what gets released, is a question for whoever
-owns the `AI` repo — it is about intent, not a typo, and was not guessed at
-here. **That repo is actively being reworked as of 2026-08-20; leave it
-alone and re-check this once Zee says the rework has landed.** Nothing in
-this tab should be re-pointed at a path that is still moving. Note also that `AI/README.md` says nothing under the new directories is
-implemented while `AI/host_pipeline/README.md` says all four notebooks are;
-both are current. See `apps/agent/docs/SCOPE.md` §5.
+- Reads `gate_report.json` at the AI repo root (not `model_out/metrics.json`)
+  and the three stages' own `rpi_pipeline/config/*/metrics.json`, matching
+  `MLops/gate.py`'s current schema. The old path this section warned about
+  no longer exists to be pointed at.
+- **Two tabs, not one** — Pipeline (trigger a release from GitHub, watch it
+  step by step, or re-run just the local gate) and Models (the release, the
+  gate's verdict, and one sub-tab per stage — anomaly, classification, RUL —
+  each with its own charts: severity by fault level, both classification
+  protocols with their confusion matrices, RUL accuracy by wear band).
+  Triggering and watching goes through the `gh` CLI out of process, so no
+  GitHub token is ever handled inside the GUI.
+- **Run against real pipeline output**, not a fixture — verified against the
+  actual `gate_report.json` a real `new_pipeline` release produced (2Rp
+  99.9%, false alarms 5.0%, LORO accuracy 100%, RUL Spearman +0.978) and
+  against a real GitHub Actions run history for the same repo, both inside
+  a full `cmake --preset dev` Maestro build, not just the standalone binary.
+  **Not yet tested from inside Maestro:** triggering a fresh release and
+  watching it land, click by click, in the embedded tab — that flow is
+  exercised constantly in the standalone app but this session only
+  confirmed the embedded tab reads and renders an already-finished run
+  correctly.
+- The guided-tour highlight targets (`run_gate`, `gate_checks`, `metrics`,
+  `server/tools.py`'s `HIGHLIGHT_TARGETS` — see `apps/agent/docs/SCOPE.md`
+  §6.2) still resolve under the **same three names**; only which QML file
+  owns each one changed, since the single-page tab those names were written
+  against is now two tabs with per-stage sub-tabs. `pdm_ai_server` needs no
+  change. Detail in `pdm_mlops_gui`'s own merge commit, `432aba3`.
 
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 
