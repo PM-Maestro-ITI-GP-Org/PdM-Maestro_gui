@@ -208,6 +208,52 @@ real gaps once the Pipeline/Models split existed to expose them:**
   that would actually move bytes onto the guest — is the one piece of this
   still unconfirmed against real hardware.
 
+**Same day, second round (`pdm_mlops_gui` 5309ee0, AI repo 1351965) — the two
+data-source actions above collapsed into one control with two independent
+switches (data: server/local; run: this machine/GitHub), because that is
+what was actually asked for: four combinations, not two disconnected
+features. Live-tested all four against the real AI repo and real GitHub
+Actions runs, cancelling each once its dispatched behaviour was confirmed
+rather than letting it run to completion. Testing this way — not just
+building it and trusting the description text — caught two real bugs:**
+
+- **The data/run mapping was inverted.** The first version of `dispatchRun()`
+  sent the opposite of `rebuild_features` from what its own description text
+  told the user would happen. Caught by triggering "data on server, run on
+  GitHub" for real and reading the dispatched run's actual inputs back —
+  reading the code again would not have caught this, the sign error looked
+  correct on the page.
+- **`Actions::triggerRelease()` has never passed `--ref`, in any version of
+  this class.** Every "Run pipeline, on GitHub" click — including everything
+  in the entry above this one — has silently dispatched against the
+  repository's *default branch*, not the branch the checkout is actually on.
+  This repo's default branch is `main`, which still carries a stale,
+  pre-restructure `release.yml`; the first live click of this round fired
+  that instead of `new_pipeline` and failed in 11 seconds at a Python setup
+  step, nowhere near anything this session built. Not a regression — today's
+  feature is what finally exercised the GitHub-trigger path for the first
+  time this project has, and exposed a bug that predates it. Fixed with
+  `Actions::currentBranch()` (`git rev-parse --abbrev-ref HEAD`, run against
+  the checkout at trigger time) as the default ref. No branch name is
+  hardcoded anywhere in this app.
+
+All four combinations then reconfirmed correct: `data=server run=local`
+genuinely attempted `dvc pull data/rig` (failed on this laptop's own missing
+`dvc-ssh` extra, unrelated); `data=local run=local` genuinely has no pull
+step in its queue at all; `data=local run=github` and `data=server
+run=github` both correctly targeted `new_pipeline` post-fix, and the
+dispatched runs' actual inputs confirmed `rebuild_features` false and true
+respectively, with the parts-cache-restore step running normally in one case
+and genuinely skipped in the other.
+
+Ship-to-device also gained a source choice (latest GitHub release, or this
+checkout's own `rpi_pipeline/` directly, no download) — both live-tested; the
+local source visibly skips the download/unpack phase and goes straight to
+publishing, and the 15 s watchdog fires and clears cleanly on both. Same
+caveat as the first round: OTA was not reopened during this testing pass, so
+an actual delivery onto a guest is still the one piece of this unconfirmed
+against real hardware.
+
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 
 Not a Maestro submodule — it's flashed hardware, and the GUI talks to it over
