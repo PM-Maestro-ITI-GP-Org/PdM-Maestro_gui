@@ -123,6 +123,19 @@ maximize.
 
 ## pdm_mlops_gui (ML/Ops tab)
 
+> **READ FIRST — this section describes the `pdm_mlops_gui` repo, NOT what
+> Maestro currently builds.** As of 2026-08-24, `apps/mlops` on `main` is
+> pinned to `73c594e`, the **pre-rewrite** tab: no `PipelineTab.qml`, no
+> `ModelsTab.qml`, no Pipeline/Models split, and none of the four rounds
+> below. The pin was moved back there by `2bc80b9` ("chore: keep mlops at
+> current integration commit", maxmaster) on top of `ee15ee2`, which had it
+> at `d0c72e0`. Everything described below exists on `pdm_mlops_gui`'s own
+> `main` and builds standalone; it is simply not in Maestro's build until
+> that pin moves forward again. **Unresolved — needs a decision between
+> maxmaster and abdelrahmankhaled14, not a unilateral re-pin.** Note the
+> knock-on: `ota_update_gui`'s `shipFilesFromBus()` (8e195e7) listens for a
+> bus message the pinned ML/Ops version never publishes.
+
 New repo, `main`. Deliberately **not** a submodule of the `AI` repo — that
 repo's `motor_fault_cpp_v2` needs a hand-built TensorFlow Lite pinned to
 `$HOME/tensorflow`, which would make every Maestro build (including the OTA
