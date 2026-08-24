@@ -285,6 +285,55 @@ of the tree at the correct non-`.gz` names and rebuilding through that —
 checkout that actually has the compressed files, only this one laptop
 predates them.
 
+**Fourth round, same day (`ota_update_gui` 8e195e7) — the first session where
+a human actually drove this tab by hand instead of me dispatching from the
+CLI and reading the results back.** Everything above was tested by triggering
+behaviour programmatically and verifying the effects; this round tested it
+the way it is actually used. That difference alone found three things, one of
+them a bug that had survived two previous rounds of "verified".
+
+- **`shipFilesFromBus()` never shipped anything, in any version.** It assigned
+  to `selectedGuestId`, which is a `readonly` property *computed from*
+  `guestIndex`. QML rejected the assignment —
+  `TypeError: Cannot assign to read-only property "selectedGuestId"` — and
+  abandoned the function on that line, before `sendModel` was populated and
+  before `sendFilesToGuest()` was ever called. From the ML/Ops side this was
+  indistinguishable from "the OTA tab isn't listening": the button sat on
+  "Shipping…" until the 15 s watchdog timed it out. **The watchdog added in
+  round one was masking this**, and both previous rounds read the button's
+  own state as the result rather than the console, which is exactly why
+  "live-tested" was too strong a word for them. Fixed by resolving the id to
+  a row in `guestsModel` and setting `guestIndex`; an unknown guest is now
+  reported on the bus instead of silently doing nothing.
+- **A finished run left in the watch panel disables the whole run card.**
+  `canRun()` is gated on `!actions.watching`, and `watching` is
+  `m_watchedRunId != 0` — which stays true for a run that is merely being
+  *displayed*, not still running. After watching any run, both switches and
+  the Run button go flat grey with no explanation, and the only way out is
+  the Dismiss button on a card further down the page, which does not look
+  like it has anything to do with the greyed-out control above it. Reported
+  as "the app is doing nothing, no button does its work", which is a fair
+  description. **Not fixed** — `watching` needs to distinguish "following a
+  run in progress" from "showing a run's result".
+- **The release run itself now exhausts the GitHub runner's disk.** Run
+  32732014764, dispatched from the button, correctly reached `new_pipeline`
+  with the right inputs and got through install, DVC SSH setup, parts-cache
+  restore, `dvc pull` and the symlink check — then died 1h12m in during
+  feature extraction with `System.IO.IOException: No space left on device`.
+  A standard hosted runner (~14 GB) cannot hold the checkout, the Python
+  env, the pulled raw dataset and a from-scratch extraction of all 75
+  recordings at once. **Not fixed** — the job needs to free the raw `.csv`
+  files once extraction has read them, or use a larger runner.
+
+**What this round did NOT establish, stated plainly:** no model was trained
+and no release was published (the run died on disk), and no file has still
+ever been delivered onto a guest by the ship path. The `selectedGuestId` fix
+is confirmed only as far as "the TypeError is gone and the unknown-guest
+branch reports correctly" — the rig went down mid-session (HMS listed both
+guests `stopped`/`reachable: false`, and the jump host stopped answering
+entirely), so the corrected path was never exercised against a live guest.
+That remains the single longest-standing unverified claim in this document.
+
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 
 Not a Maestro submodule — it's flashed hardware, and the GUI talks to it over
