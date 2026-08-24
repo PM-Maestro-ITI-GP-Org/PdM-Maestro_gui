@@ -166,6 +166,48 @@ branch, and the tab now follows it directly:
   against is now two tabs with per-stage sub-tabs. `pdm_ai_server` needs no
   change. Detail in `pdm_mlops_gui`'s own merge commit, `432aba3`.
 
+**Same day, two more capabilities (`pdm_mlops_gui` 54416af,
+`ota_update_gui` c2b0b65) — "what is this tab actually for" turned into two
+real gaps once the Pipeline/Models split existed to expose them:**
+
+- **Run the full pipeline locally**, a third option beside "trigger on
+  GitHub" and "gate-only recheck" — extraction and all three trainings run
+  right here via a chained `QProcess` sequence, with a switch for whether to
+  `dvc pull` fresh or trust `data/rig` as it already sits on disk. Verified
+  against the real AI repo: it genuinely ran `build_features_rig.py`, hit a
+  real (pre-existing, unrelated) `FileNotFoundError` from this checkout's
+  stale symlinks, and correctly marked the failed step and skipped the rest
+  rather than either hanging or reporting success.
+- **"Ship to the device"** — downloads a release's bundle and hands
+  `{guestId, entries}` to `ota_update_gui`'s existing Send-files mechanism
+  over the shared `MessageBus`, landing model/config on guest-2 (where
+  `motor_ai_node` actually runs, per that repo's own README) via the same
+  MQTT/HMS transfer a human pressing Send already uses. No second
+  `MqttClient` — `pdm_mlops_gui` grew zero network code for this, only a
+  publish and a status subscription. `ota_update_gui`'s own half is
+  `OtaAppPage.qml::shipFilesFromBus()`, which does not duplicate the
+  existing Send flow, it *calls* it, so there is exactly one implementation
+  of "push files to a guest" to keep correct.
+
+  A first live run of this found a real bug: with the OTA tab never opened
+  in that session, nothing was listening, and the request sat forever on
+  "Waiting for the OTA tab to pick this up…" with the button permanently
+  stuck on "Shipping…" — no error, no retry short of restarting the app. A
+  15 s "still alive" watchdog now turns silence into a clean, retryable
+  failure. Reproduced the stuck state, confirmed the fix clears it and a
+  second attempt starts clean.
+
+  **Verified against the real rig** — HMS genuinely connected, `guest-2`
+  (linux, running) listed exactly as this feature's default guest id
+  assumes, and a real release (`model-20260823-195319-7821b52`) genuinely
+  downloaded and unpacked through `gh` and `unzip`. **Deliberately not
+  verified: an actual delivery onto the guest.** That overwrites
+  `/usr/share/motor-ai-node/{model,config}` on hardware that was live and
+  running at the time, and triggering that as a side effect of testing was
+  not this session's call to make. `shipFilesFromBus()` itself — the part
+  that would actually move bytes onto the guest — is the one piece of this
+  still unconfirmed against real hardware.
+
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 
 Not a Maestro submodule — it's flashed hardware, and the GUI talks to it over
