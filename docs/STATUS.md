@@ -254,6 +254,37 @@ caveat as the first round: OTA was not reopened during this testing pass, so
 an actual delivery onto a guest is still the one piece of this unconfirmed
 against real hardware.
 
+**Third round, same day (`pdm_mlops_gui` d0c72e0, AI repo b8399b4) — a local
+data-folder picker**, shown only for run=local + data=local (a GitHub runner
+cannot see this machine's disk, so it means nothing on that venue). Wired to
+a new `build_features_rig.py --data-root` flag (previously a Python-only
+parameter, `load_and_run(data_root=...)`, never reachable without a script);
+`sanity_check()` needed a matching change since it hard-fails on the default
+tree's specific shape (~75 recordings, exactly 3 conditions) — those
+assertions are now skipped for a custom root, which has no such shape to be
+checked against.
+
+Verified end to end with a real 2-recording test folder: local step queue
+correctly has no `dvc pull` step at all, `build features` is labelled with
+the folder's own name, and it genuinely ran `build_features_rig.py
+--data-root <folder>`. Also checked (not assumed) that `FolderDialog`'s
+`selectedFolder` assigned straight to a plain `TextField.text` resolves to a
+clean path with no `file://` prefix, the same as it already does for
+`pipeline.repoDir` elsewhere in this tab.
+
+**A real mistake happened during this testing, fixed rather than left
+undocumented:** `build_features_rig.py` writes to one fixed output path
+regardless of `--data-root`, so the 2-recording test write clobbered this
+checkout's real, 75-recording `data/features/features_rig.csv`. Restoring it
+surfaced a second, unrelated, pre-existing problem: this checkout's
+`data_for_classification` symlinks target `.csv.gz` names that do not exist
+locally (`data/rig` here still holds uncompressed `.csv`, predating the gzip
+migration this repo went through). Fixed locally by relinking a scratch copy
+of the tree at the correct non-`.gz` names and rebuilding through that —
+**the committed symlinks were not touched**, they are correct for every
+checkout that actually has the compressed files, only this one laptop
+predates them.
+
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 
 Not a Maestro submodule — it's flashed hardware, and the GUI talks to it over
