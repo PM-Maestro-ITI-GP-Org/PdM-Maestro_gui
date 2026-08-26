@@ -123,39 +123,229 @@ maximize.
 
 ## pdm_mlops_gui (ML/Ops tab)
 
+> **READ FIRST — this section describes the `pdm_mlops_gui` repo, NOT what
+> Maestro currently builds.** As of 2026-08-24, `apps/mlops` on `main` is
+> pinned to `73c594e`, the **pre-rewrite** tab: no `PipelineTab.qml`, no
+> `ModelsTab.qml`, no Pipeline/Models split, and none of the four rounds
+> below. The pin was moved back there by `2bc80b9` ("chore: keep mlops at
+> current integration commit", maxmaster) on top of `ee15ee2`, which had it
+> at `d0c72e0`. Everything described below exists on `pdm_mlops_gui`'s own
+> `main` and builds standalone; it is simply not in Maestro's build until
+> that pin moves forward again. **Unresolved — needs a decision between
+> maxmaster and abdelrahmankhaled14, not a unilateral re-pin.** Note the
+> knock-on: `ota_update_gui`'s `shipFilesFromBus()` (8e195e7) listens for a
+> bus message the pinned ML/Ops version never publishes.
+
 New repo, `main`. Deliberately **not** a submodule of the `AI` repo — that
 repo's `motor_fault_cpp_v2` needs a hand-built TensorFlow Lite pinned to
 `$HOME/tensorflow`, which would make every Maestro build (including the OTA
 and Data Collection tabs, which have no interest in ML) depend on it.
-Instead this tab parses and watches `model_out/metrics.json`, the file
-`mlops/gate.py` in the `AI` repo already writes, and re-implements none of
-the pass/fail logic — a second opinion here could disagree with the one CI
-actually releases on.
+Instead this tab parses and watches the AI repo's own release artefacts and
+re-implements none of the pass/fail logic — a second opinion here could
+disagree with the one CI actually releases on.
 
-**Never run against a real pipeline output** — only against a hand-built
-JSON fixture matching the schema `gate.py` writes. If the real pipeline's
-output ever disagrees with that schema, this tab has not seen it.
+**2026-08-24: rewritten against the AI repo's restructure, and merged to
+`main` (432aba3).** Everything above and below this note, and the whole
+"path has since moved" story, describes the pre-restructure tab and is
+superseded. The restructure this section used to say was "actively being
+reworked... leave it alone" has landed, on the AI repo's `new_pipeline`
+branch, and the tab now follows it directly:
 
-**The path it watches has since moved — found 2026-08-20 while scoping the
-AI Agent tab, not fixed.** `MlOpsPage.qml` reads `model_out/metrics.json` and
-runs `python3 -m mlops.gate`. In the `AI` repo, `gate.py` now lives at
-`old_pipeline/mlops/gate.py`: the repo was restructured into `host_pipeline/`
-(four notebooks — data building, anomaly, classification, RUL),
-`rpi_pipeline/` (C++ inference) and `MLops/` (empty, with its README pointing
-back at `old_pipeline/` for the previous DVC/CI setup). The checked-out branch
-is `newPipeline_RUL_v1`, not the `abdelrahman` that `ARCHITECTURE.md` names,
-and `MLops/README.md` states there is **no active CI** — the old workflow was
-deleted because it pointed at paths that moved.
+- Reads `gate_report.json` at the AI repo root (not `model_out/metrics.json`)
+  and the three stages' own `rpi_pipeline/config/*/metrics.json`, matching
+  `MLops/gate.py`'s current schema. The old path this section warned about
+  no longer exists to be pointed at.
+- **Two tabs, not one** — Pipeline (trigger a release from GitHub, watch it
+  step by step, or re-run just the local gate) and Models (the release, the
+  gate's verdict, and one sub-tab per stage — anomaly, classification, RUL —
+  each with its own charts: severity by fault level, both classification
+  protocols with their confusion matrices, RUL accuracy by wear band).
+  Triggering and watching goes through the `gh` CLI out of process, so no
+  GitHub token is ever handled inside the GUI.
+- **Run against real pipeline output**, not a fixture — verified against the
+  actual `gate_report.json` a real `new_pipeline` release produced (2Rp
+  99.9%, false alarms 5.0%, LORO accuracy 100%, RUL Spearman +0.978) and
+  against a real GitHub Actions run history for the same repo, both inside
+  a full `cmake --preset dev` Maestro build, not just the standalone binary.
+  **Not yet tested from inside Maestro:** triggering a fresh release and
+  watching it land, click by click, in the embedded tab — that flow is
+  exercised constantly in the standalone app but this session only
+  confirmed the embedded tab reads and renders an already-finished run
+  correctly.
+- The guided-tour highlight targets (`run_gate`, `gate_checks`, `metrics`,
+  `server/tools.py`'s `HIGHLIGHT_TARGETS` — see `apps/agent/docs/SCOPE.md`
+  §6.2) still resolve under the **same three names**; only which QML file
+  owns each one changed, since the single-page tab those names were written
+  against is now two tabs with per-stage sub-tabs. `pdm_ai_server` needs no
+  change. Detail in `pdm_mlops_gui`'s own merge commit, `432aba3`.
 
-So everything above about this tab describes a pipeline layout that is no
-longer the live one. Whether the tab should follow the new pipeline, or
-whether `old_pipeline` is still what gets released, is a question for whoever
-owns the `AI` repo — it is about intent, not a typo, and was not guessed at
-here. **That repo is actively being reworked as of 2026-08-20; leave it
-alone and re-check this once Zee says the rework has landed.** Nothing in
-this tab should be re-pointed at a path that is still moving. Note also that `AI/README.md` says nothing under the new directories is
-implemented while `AI/host_pipeline/README.md` says all four notebooks are;
-both are current. See `apps/agent/docs/SCOPE.md` §5.
+**Same day, two more capabilities (`pdm_mlops_gui` 54416af,
+`ota_update_gui` c2b0b65) — "what is this tab actually for" turned into two
+real gaps once the Pipeline/Models split existed to expose them:**
+
+- **Run the full pipeline locally**, a third option beside "trigger on
+  GitHub" and "gate-only recheck" — extraction and all three trainings run
+  right here via a chained `QProcess` sequence, with a switch for whether to
+  `dvc pull` fresh or trust `data/rig` as it already sits on disk. Verified
+  against the real AI repo: it genuinely ran `build_features_rig.py`, hit a
+  real (pre-existing, unrelated) `FileNotFoundError` from this checkout's
+  stale symlinks, and correctly marked the failed step and skipped the rest
+  rather than either hanging or reporting success.
+- **"Ship to the device"** — downloads a release's bundle and hands
+  `{guestId, entries}` to `ota_update_gui`'s existing Send-files mechanism
+  over the shared `MessageBus`, landing model/config on guest-2 (where
+  `motor_ai_node` actually runs, per that repo's own README) via the same
+  MQTT/HMS transfer a human pressing Send already uses. No second
+  `MqttClient` — `pdm_mlops_gui` grew zero network code for this, only a
+  publish and a status subscription. `ota_update_gui`'s own half is
+  `OtaAppPage.qml::shipFilesFromBus()`, which does not duplicate the
+  existing Send flow, it *calls* it, so there is exactly one implementation
+  of "push files to a guest" to keep correct.
+
+  A first live run of this found a real bug: with the OTA tab never opened
+  in that session, nothing was listening, and the request sat forever on
+  "Waiting for the OTA tab to pick this up…" with the button permanently
+  stuck on "Shipping…" — no error, no retry short of restarting the app. A
+  15 s "still alive" watchdog now turns silence into a clean, retryable
+  failure. Reproduced the stuck state, confirmed the fix clears it and a
+  second attempt starts clean.
+
+  **Verified against the real rig** — HMS genuinely connected, `guest-2`
+  (linux, running) listed exactly as this feature's default guest id
+  assumes, and a real release (`model-20260823-195319-7821b52`) genuinely
+  downloaded and unpacked through `gh` and `unzip`. **Deliberately not
+  verified: an actual delivery onto the guest.** That overwrites
+  `/usr/share/motor-ai-node/{model,config}` on hardware that was live and
+  running at the time, and triggering that as a side effect of testing was
+  not this session's call to make. `shipFilesFromBus()` itself — the part
+  that would actually move bytes onto the guest — is the one piece of this
+  still unconfirmed against real hardware.
+
+**Same day, second round (`pdm_mlops_gui` 5309ee0, AI repo 1351965) — the two
+data-source actions above collapsed into one control with two independent
+switches (data: server/local; run: this machine/GitHub), because that is
+what was actually asked for: four combinations, not two disconnected
+features. Live-tested all four against the real AI repo and real GitHub
+Actions runs, cancelling each once its dispatched behaviour was confirmed
+rather than letting it run to completion. Testing this way — not just
+building it and trusting the description text — caught two real bugs:**
+
+- **The data/run mapping was inverted.** The first version of `dispatchRun()`
+  sent the opposite of `rebuild_features` from what its own description text
+  told the user would happen. Caught by triggering "data on server, run on
+  GitHub" for real and reading the dispatched run's actual inputs back —
+  reading the code again would not have caught this, the sign error looked
+  correct on the page.
+- **`Actions::triggerRelease()` has never passed `--ref`, in any version of
+  this class.** Every "Run pipeline, on GitHub" click — including everything
+  in the entry above this one — has silently dispatched against the
+  repository's *default branch*, not the branch the checkout is actually on.
+  This repo's default branch is `main`, which still carries a stale,
+  pre-restructure `release.yml`; the first live click of this round fired
+  that instead of `new_pipeline` and failed in 11 seconds at a Python setup
+  step, nowhere near anything this session built. Not a regression — today's
+  feature is what finally exercised the GitHub-trigger path for the first
+  time this project has, and exposed a bug that predates it. Fixed with
+  `Actions::currentBranch()` (`git rev-parse --abbrev-ref HEAD`, run against
+  the checkout at trigger time) as the default ref. No branch name is
+  hardcoded anywhere in this app.
+
+All four combinations then reconfirmed correct: `data=server run=local`
+genuinely attempted `dvc pull data/rig` (failed on this laptop's own missing
+`dvc-ssh` extra, unrelated); `data=local run=local` genuinely has no pull
+step in its queue at all; `data=local run=github` and `data=server
+run=github` both correctly targeted `new_pipeline` post-fix, and the
+dispatched runs' actual inputs confirmed `rebuild_features` false and true
+respectively, with the parts-cache-restore step running normally in one case
+and genuinely skipped in the other.
+
+Ship-to-device also gained a source choice (latest GitHub release, or this
+checkout's own `rpi_pipeline/` directly, no download) — both live-tested; the
+local source visibly skips the download/unpack phase and goes straight to
+publishing, and the 15 s watchdog fires and clears cleanly on both. Same
+caveat as the first round: OTA was not reopened during this testing pass, so
+an actual delivery onto a guest is still the one piece of this unconfirmed
+against real hardware.
+
+**Third round, same day (`pdm_mlops_gui` d0c72e0, AI repo b8399b4) — a local
+data-folder picker**, shown only for run=local + data=local (a GitHub runner
+cannot see this machine's disk, so it means nothing on that venue). Wired to
+a new `build_features_rig.py --data-root` flag (previously a Python-only
+parameter, `load_and_run(data_root=...)`, never reachable without a script);
+`sanity_check()` needed a matching change since it hard-fails on the default
+tree's specific shape (~75 recordings, exactly 3 conditions) — those
+assertions are now skipped for a custom root, which has no such shape to be
+checked against.
+
+Verified end to end with a real 2-recording test folder: local step queue
+correctly has no `dvc pull` step at all, `build features` is labelled with
+the folder's own name, and it genuinely ran `build_features_rig.py
+--data-root <folder>`. Also checked (not assumed) that `FolderDialog`'s
+`selectedFolder` assigned straight to a plain `TextField.text` resolves to a
+clean path with no `file://` prefix, the same as it already does for
+`pipeline.repoDir` elsewhere in this tab.
+
+**A real mistake happened during this testing, fixed rather than left
+undocumented:** `build_features_rig.py` writes to one fixed output path
+regardless of `--data-root`, so the 2-recording test write clobbered this
+checkout's real, 75-recording `data/features/features_rig.csv`. Restoring it
+surfaced a second, unrelated, pre-existing problem: this checkout's
+`data_for_classification` symlinks target `.csv.gz` names that do not exist
+locally (`data/rig` here still holds uncompressed `.csv`, predating the gzip
+migration this repo went through). Fixed locally by relinking a scratch copy
+of the tree at the correct non-`.gz` names and rebuilding through that —
+**the committed symlinks were not touched**, they are correct for every
+checkout that actually has the compressed files, only this one laptop
+predates them.
+
+**Fourth round, same day (`ota_update_gui` 8e195e7) — the first session where
+a human actually drove this tab by hand instead of me dispatching from the
+CLI and reading the results back.** Everything above was tested by triggering
+behaviour programmatically and verifying the effects; this round tested it
+the way it is actually used. That difference alone found three things, one of
+them a bug that had survived two previous rounds of "verified".
+
+- **`shipFilesFromBus()` never shipped anything, in any version.** It assigned
+  to `selectedGuestId`, which is a `readonly` property *computed from*
+  `guestIndex`. QML rejected the assignment —
+  `TypeError: Cannot assign to read-only property "selectedGuestId"` — and
+  abandoned the function on that line, before `sendModel` was populated and
+  before `sendFilesToGuest()` was ever called. From the ML/Ops side this was
+  indistinguishable from "the OTA tab isn't listening": the button sat on
+  "Shipping…" until the 15 s watchdog timed it out. **The watchdog added in
+  round one was masking this**, and both previous rounds read the button's
+  own state as the result rather than the console, which is exactly why
+  "live-tested" was too strong a word for them. Fixed by resolving the id to
+  a row in `guestsModel` and setting `guestIndex`; an unknown guest is now
+  reported on the bus instead of silently doing nothing.
+- **A finished run left in the watch panel disables the whole run card.**
+  `canRun()` is gated on `!actions.watching`, and `watching` is
+  `m_watchedRunId != 0` — which stays true for a run that is merely being
+  *displayed*, not still running. After watching any run, both switches and
+  the Run button go flat grey with no explanation, and the only way out is
+  the Dismiss button on a card further down the page, which does not look
+  like it has anything to do with the greyed-out control above it. Reported
+  as "the app is doing nothing, no button does its work", which is a fair
+  description. **Not fixed** — `watching` needs to distinguish "following a
+  run in progress" from "showing a run's result".
+- **The release run itself now exhausts the GitHub runner's disk.** Run
+  32732014764, dispatched from the button, correctly reached `new_pipeline`
+  with the right inputs and got through install, DVC SSH setup, parts-cache
+  restore, `dvc pull` and the symlink check — then died 1h12m in during
+  feature extraction with `System.IO.IOException: No space left on device`.
+  A standard hosted runner (~14 GB) cannot hold the checkout, the Python
+  env, the pulled raw dataset and a from-scratch extraction of all 75
+  recordings at once. **Not fixed** — the job needs to free the raw `.csv`
+  files once extraction has read them, or use a larger runner.
+
+**What this round did NOT establish, stated plainly:** no model was trained
+and no release was published (the run died on disk), and no file has still
+ever been delivered onto a guest by the ship path. The `selectedGuestId` fix
+is confirmed only as far as "the TypeError is gone and the unknown-guest
+branch reports correctly" — the rig went down mid-session (HMS listed both
+guests `stopped`/`reachable: false`, and the jump host stopped answering
+entirely), so the corrected path was never exercised against a live guest.
+That remains the single longest-standing unverified claim in this document.
 
 ## motor_control_node (ESP32 firmware, repo name; folder name `esp_dac`)
 

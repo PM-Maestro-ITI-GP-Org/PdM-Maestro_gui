@@ -97,7 +97,7 @@ repo's own README for the exact command.
 |---|---|
 | Motor Control | **Functionally complete** (M0–M6, M3.5). Verified against real hardware: scenario runs, emergency stop at the new 2.5 s ramp, upload+replay, the fetch-and-clear cycle (310 MB, byte-verified, then deleted). **Not yet verified live:** a full series run end-to-end on the bench. |
 | Data Collection | Ported to the contract (Phase 2 of the original 5-phase plan). MQTT connect moved off the GUI thread. Subscribes to `recording.start`/`recording.stop` on the bus. |
-| ML/Ops | Written against the contract. Reads `mlops/gate.py`'s own verdict from `model_out/metrics.json`; forms no second opinion. **Never tested against a real pipeline run** — only a hand-built fixture matching the schema. |
+| ML/Ops | ⚠️ **The build currently ships the PRE-REWRITE tab.** `apps/mlops` is pinned to `73c594e` (no Pipeline/Models split, none of the work described here) by `2bc80b9` on top of `ee15ee2`, which had it at `d0c72e0`. Everything below exists on `pdm_mlops_gui`'s own `main` and builds standalone — it is just not in Maestro. Needs a maxmaster/abdelrahmankhaled14 decision; see docs/STATUS.md. The rest of this cell describes the repo, not the shipped tab. — Rewritten 2026-08-24 against the AI repo's current pipeline (`gate_report.json` + per-stage `rpi_pipeline/config/*/metrics.json`, not the old `model_out/` path). Two tabs — trigger/watch a release, and one sub-tab per model stage. Same day: **all four** data-source × run-venue combinations (server/local data × local/GitHub run) live-tested against the real AI repo and real GitHub Actions runs, which caught and fixed two real bugs — an inverted flag, and `triggerRelease()` having *never* passed `--ref` in any version of this class, so every GitHub trigger had always silently targeted the repo's default branch (`main`, stale) instead of the checkout's actual branch. Also: "Ship to the device," source selectable (latest GitHub release, or this checkout's own `rpi_pipeline/` directly), delivering onto guest-2 over the bus via the OTA tab's existing MQTT/HMS transfer — both sources live-tested. The actual guest delivery deliberately was not triggered either round (live shared hardware) — see docs/STATUS.md for exactly what was and wasn't run. Also gained a local-data-folder picker (only shown for run=local + data=local), passed to the AI repo's new `build_features_rig.py --data-root` flag. **A fourth round the same day was the first time a human drove the tab by hand rather than me dispatching from the CLI, and that alone found three things** — ship-to-device had *never* worked (assigned to a readonly QML property, died silently, masked by its own watchdog; now fixed), a finished run left in the watch panel disables the entire run card with no explanation (**open**), and the release job now exhausts the hosted runner's disk during extraction (**open**). **Still not tested, and now the oldest unverified claim here:** an actual ship delivered onto a guest — the rig went down mid-session. |
 | OTA Update | Ported to the contract, merged forward with six commits from upstream `main`. |
 | AI Agent | **Placeholder only.** Never scoped. See "What's actually left" below. |
 
@@ -155,7 +155,28 @@ was never addressed; do not assume it has been fixed.
    detail in [docs/STATUS.md](docs/STATUS.md). Do not trust the README's
    prose over the `.ino` source on this specific constant until someone
    reconciles them.
-6. Merging `feat/maestro-integration` back to `main` on the two ported app
+6. **The ML/Ops run card disables itself after any run finishes.**
+   `canRun()` is gated on `!actions.watching`, but `watching` is just
+   `m_watchedRunId != 0`, which stays true for a run being *displayed* as
+   well as one in progress. Both switches and the Run button go grey with no
+   explanation; the only escape is a Dismiss button on a different card
+   further down. Found 2026-08-24 by watching someone use it. `watching`
+   needs to separate "following a live run" from "showing a result."
+7. **The release workflow runs the hosted runner out of disk.** Run
+   32732014764 died 1h12m in at `System.IO.IOException: No space left on
+   device` during feature extraction — a ~14 GB runner cannot hold the
+   checkout, the Python env, the pulled raw dataset and a from-scratch
+   extraction of 75 recordings simultaneously. The job needs to delete the
+   raw `.csv` files once extraction has consumed them (there is already a
+   "free the raw dataset" step — it runs *after* extraction, too late), or
+   move to a larger runner.
+8. **Nothing has ever been delivered onto a guest by the ship-to-device
+   path.** Three sessions have now claimed to test it; the first two read the
+   button's state instead of the console and missed that it was failing
+   silently (see docs/STATUS.md, fourth round). The bug behind that is fixed,
+   but the fixed path has still never moved a byte onto real hardware — the
+   rig was powered down when it was finally ready to try.
+9. Merging `feat/maestro-integration` back to `main` on the two ported app
    repos, and `feat/estop-2500ms` back to `main` on the firmware, is a call
    for whoever owns those repos to make — the changes are backward compatible
    by design, but the merge itself was never requested.
