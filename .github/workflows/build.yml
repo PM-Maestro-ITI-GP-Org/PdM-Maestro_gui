@@ -1,0 +1,31 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # .gitmodules points at git@github.com:... -- all six submodules are
+      # public, so the only thing SSH URLs need is a key. Rewriting to https
+      # lets actions/checkout clone them anonymously; no deploy key or PAT.
+      - name: Use https for submodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: jurplel/install-qt-action@v4
+        with:
+          version: "6.10.3"
+          modules: "qtserialport"
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ env.QT_ROOT_DIR }}"
+
+      - name: Build
+        run: cmake --build build --parallel
