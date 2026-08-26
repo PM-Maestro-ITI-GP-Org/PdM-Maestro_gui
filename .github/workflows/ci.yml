@@ -65,7 +65,10 @@ jobs:
             echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           else
             git fetch --tags
-            last=$(git tag --list 'v*' --sort=-v:refname | head -n1)
+            # Strict vX.Y.Z only -- this repo also carries non-semver tags
+            # (v0.1.0_firstdata, v0.2.0_sshkey) that 'v*' alone would match,
+            # and patch+1 on a non-numeric suffix dies with a bash arithmetic error.
+            last=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n1)
             if [ -z "$last" ]; then
               next="v0.1.0"
             else
